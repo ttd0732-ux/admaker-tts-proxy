@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>광고영상메이커 — 누구나 무료로</title>
+<style>
+  :root{--navy:#1e3a5f;--gold:#f0b429;--bg:#f4f1e8}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Malgun Gothic","Noto Sans KR",sans-serif;background:var(--bg);color:#222}
+  header{background:var(--navy);color:#fff;padding:18px 16px;text-align:center}
+  header h1{margin:0;font-size:22px}
+  header p{margin:6px 0 0;color:#e8c97a;font-size:14px}
+  main{max-width:900px;margin:0 auto;padding:16px}
+  .card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  h2{font-size:17px;margin:0 0 10px;color:var(--navy)}
+  label{display:block;font-size:14px;font-weight:700;margin:10px 0 4px}
+  input[type=text],textarea,select{width:100%;padding:11px;border:1px solid #ccc;border-radius:10px;font-size:15px;font-family:inherit}
+  textarea{min-height:130px;line-height:1.6}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:140px}
+  button{border:0;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:700;cursor:pointer}
+  .btn-navy{background:var(--navy);color:#fff}
+  .btn-gold{background:var(--gold);color:#222}
+  .btn-line{background:#fff;color:var(--navy);border:2px solid var(--navy)}
+  .btn-danger{background:#fff;color:#c0392b;border:2px solid #c0392b}
+  .tpl{margin:4px 4px 0 0}
+  .note{font-size:13px;color:#666;line-height:1.6}
+  /* 미리보기 무대 */
+  #stageWrap{display:flex;justify-content:center}
+  #stage{position:relative;overflow:hidden;background:#101828;color:#fff;border-radius:14px;width:100%;max-width:360px;aspect-ratio:9/16;display:flex;flex-direction:column;padding:22px 20px}
+  #stage.wide{max-width:640px;aspect-ratio:16/9}
+  #stage .bgphoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45}
+  #stage .inner{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
+  #stageTitle{font-size:24px;font-weight:800;text-align:center;margin:0 0 12px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+  #stageMeta{font-size:14px;text-align:center;color:#ffe9a8;margin-bottom:10px}
+  #sentences{flex:1;overflow-y:auto;padding-right:2px}
+  #sentences p{margin:0 0 14px;font-size:20px;line-height:1.55;color:#cbd5e1;transition:all .3s}
+  #sentences p.active{color:#fff;font-weight:800;font-size:23px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+  #sentences.rolling p{display:block}
+  #endCard{display:none;text-align:center;padding-top:30px}
+  #endCard .big{font-size:30px;font-weight:900;color:#ffe9a8;line-height:1.4}
+  #progress{height:8px;background:rgba(255,255,255,.25);border-radius:4px;margin-top:12px;position:relative}
+  #progressBar{height:100%;width:0;background:var(--gold);border-radius:4px}
+  #status{font-size:14px;text-align:center;margin-top:8px;min-height:20px}
+  .saved{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #eee;padding:8px 0;font-size:14px}
+  .saved button{padding:7px 10px;font-size:13px}
+  @media(max-width:600px){#stageTitle{font-size:21px}#sentences p{font-size:18px}#sentences p.active{font-size:21px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎬 광고영상메이커</h1>
+  <p>광고 내용만 적으면, 성우 같은 목소리로 읽어주는 광고 영상을 만듭니다 · 누구나 무료</p>
+</header>
+<main>
+  <div class="card">
+    <h2>사용법</h2>
+    <p class="note" style="font-size:15px;color:#222">① 광고 내용을 적는다 → ② 목소리를 고른다 → ③ 화면·배경음악을 고른다 → ④ 미리보기에서 영상 다운로드를 누른다. 다운로드되는 영상에는 목소리, 배경음악, 배경이 모두 합쳐져 들어갑니다.</p>
+  </div>
+  <div class="card">
+    <h2>1단계 · 광고 종류와 내용</h2>
+    <div class="row">
+      <button class="btn-line tpl" onclick="applyTpl('worship')">주일 예배 광고 안내</button>
+      <button class="btn-line tpl" onclick="applyTpl('event')">행사 안내</button>
+      <button class="btn-line tpl" onclick="applyTpl('evangelism')">전도 광고</button>
+      <button class="btn-line tpl" onclick="applyTpl('free')">자유 작성</button>
+    </div>
+    <label for="title">광고 제목</label>
+    <input type="text" id="title" placeholder="예: 살아나는교회 주일 예배에 초대합니다">
+    <label for="body">광고 내용 (문장마다 엔터를 치면 호흡이 좋아집니다)</label>
+    <textarea id="body" placeholder="예: 매주 주일 오전 11시, 살아나는교회에서 예배가 있습니다.&#10;처음 오시는 분도 편하게 오세요.&#10;따뜻한 환영과 은혜로운 말씀이 기다리고 있습니다."></textarea>
+  </div>
+
+  <div class="card">
+    <h2>2단계 · 목소리 고르기</h2>
+    <p class="note">목소리는 쓰시는 기기(핸드폰·PC)에 들어 있는 한국어 음성 중에서 고릅니다. 목록은 여성 목소리 / 남성 목소리 / 기타로 나눠서, 여성 1·여성 2, 남성 1·남성 2 식으로 번호가 붙어 나옵니다. 기기마다 목록이 다를 수 있어, 이 기기에 남성 목소리가 없을 수도 있습니다. PC에서는 Edge 브라우저로 열어보시면 더 많은 목소리가 나올 수 있습니다. 고르기 전에 꼭 미리듣기로 확인하세요.</p>
+    <label for="voice">목소리</label>
+    <select id="voice"><option>목소리를 불러오는 중…</option></select>
+    <p class="note" id="voiceNote"></p>
+    <label>목소리 느낌 (속도·톤)</label>
+    <div class="row">
+      <button class="btn-line" onclick="setTone(0.9,0.9,'차분한 낭독')">차분한 낭독</button>
+      <button class="btn-line" onclick="setTone(1.1,1.2,'밝은 안내')">밝은 안내</button>
+      <button class="btn-line" onclick="setTone(0.85,0.7,'엄숙한 낭독')">엄숙한 낭독</button>
+      <button class="btn-line" onclick="setTone(0.85,1,'천천히 또렷하게')">천천히 또렷하게</button>
+      <button class="btn-line" onclick="setTone(1.15,1.3,'활기차게')">활기차게</button>
+      <button class="btn-line" onclick="setTone(1,1,'기본')">기본</button>
+    </div>
+    <div class="row">
+      <div><label for="rate">속도</label><input type="range" id="rate" min="0.7" max="1.3" step="0.05" value="1" oninput="document.getElementById('rateVal').textContent=this.value"></div>
+      <div><label for="pitch">톤 <span id="rateVal">1</span></label><input type="range" id="pitch" min="0.7" max="1.3" step="0.05" value="1"></div>
+    </div>
+    <p class="note" id="toneNow">현재 느낌: 기본</p>
+    <button class="btn-navy" onclick="previewVoice()">🔊 선택한 목소리 미리듣기 (첫 문장)</button>
+    <button class="btn-line" onclick="testVoice()">🔊 목소리 테스트 (광고 내용 없이, "주일 예배에 초대합니다")</button>
+    <p class="note">미리듣기에서 소리가 안 나면 이 테스트 버튼을 먼저 눌러보세요. 광고 내용을 적지 않아도 됩니다. 테스트에서도 안 나면 핸드폰 미디어 음량과 무음 모드를 확인해 주세요.</p>
+    <label for="dict">발음 교정 (예: 010 → 공일공, 한 줄에 하나씩 “찾을말=읽을말”)</label>
+    <textarea id="dict" style="min-height:60px" placeholder="010=공일공&#10;살아나는교회=살아나는 교회"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>3단계 · 화면 고르기</h2>
+    <label>화면 움직임 (두 가지 다 들어 있습니다)</label>
+    <div class="row">
+      <button class="btn-gold" id="modeSubBtn" onclick="setMode('subtitle')">자막식 · 읽는 문장만 밝게</button>
+      <button class="btn-line" id="modeRollBtn" onclick="setMode('rolling')">롤링식 · 글자가 아래에서 위로</button>
+    </div>
+    <label>화면 비율</label>
+    <div class="row">
+      <button class="btn-line" onclick="setRatio('vertical')">세로형 9:16 (카톡·쇼츠용)</button>
+      <button class="btn-line" onclick="setRatio('wide')">가로형 16:9 (예배 화면용)</button>
+    </div>
+    <label>영상 배경 (조용하고 단정한 색만 넣었습니다. 화려한 색이나 무늬는 없습니다)</label>
+    <div class="row">
+      <button class="btn-line" onclick="setBg('#101828')">짙은 남색</button>
+      <button class="btn-line" onclick="setBg('#000000')">검정</button>
+      <button class="btn-line" onclick="setBg('#14352a')">짙은 초록</button>
+      <button class="btn-line" onclick="setBg('#4a1f1f')">고동색</button>
+      <button class="btn-line" onclick="setBg('#2b2b2b')">짙은 회색</button>
+      <button class="btn-line" onclick="setBg('linear-gradient(180deg,#1e3a5f,#0e2242)')">남색 그라데이션</button>
+      <button class="btn-line" onclick="setBg('linear-gradient(180deg,#14352a,#0e241c)')">초록 그라데이션</button>
+    </div>
+    <label for="bgfile">배경 사진 (선택, 교회 사진 등을 올리면 배경으로 깔립니다)</label>
+    <input type="file" id="bgfile" accept="image/*" onchange="loadBg(this)">
+    <label for="bgmMode">배경음악 선택 (목사님이 주신 저작권 없는 음악 10곡)</label>
+    <select id="bgmMode" onchange="setBgmMode(this.value)">
+      <option value="bgm1" selected>배경음악 1</option>
+      <option value="bgm2">배경음악 2</option>
+      <option value="bgm3">배경음악 3</option>
+      <option value="bgm4">배경음악 4</option>
+      <option value="bgm5">배경음악 5</option>
+      <option value="bgm6">배경음악 6</option>
+      <option value="bgm7">배경음악 7</option>
+      <option value="bgm8">배경음악 8</option>
+      <option value="bgm9">배경음악 9</option>
+      <option value="bgm10">배경음악 10</option>
+      <option value="file">내 파일로 올린 음악 사용</option>
+      <option value="none">배경음악 없음</option>
+    </select>
+    <p class="note" id="bgmNote">기본은 배경음악 1입니다. 재생 버튼을 누르면 자동으로 깔립니다.</p>
+    <div class="row">
+      <button class="btn-navy" onclick="previewBgm()">🔊 배경음악 미리듣기 (6초)</button>
+    </div>
+    <label for="bgmVol">배경음악 크기 (목소리보다 작게만 나옵니다) <span id="bgmVolText">35%</span></label>
+    <input type="range" id="bgmVol" min="0" max="100" value="35" oninput="bgmVol=this.value/100; $('bgmVolText').textContent=this.value+'%'">
+    <label for="bgm">내 배경음악 파일 넣기 (선택)</label>
+    <input type="file" id="bgm" accept="audio/*" onchange="loadBgm(this)">
+    <p class="note">파일을 올리면 자동으로 '내 파일로 올린 음악 사용'으로 바뀝니다. 파일 음악은 저작권 없는 음악 파일만 올려주세요.</p>
+  </div>
+
+  <div class="card">
+    <h2>4단계 · 미리보기와 영상 다운로드</h2>
+    <div id="stageWrap"><div id="stage">
+      <img id="bgImg" class="bgphoto" style="display:none" alt="">
+      <div class="inner">
+        <h3 id="stageTitle">제목을 적어주세요</h3>
+        <div id="stageMeta"></div>
+        <div id="sentences"><p>광고 내용을 적으면 여기에 문장들이 나타납니다.</p></div>
+        <div id="endCard"><div class="big" id="endText"></div><p id="endSub"></p></div>
+        <div id="progress"><div id="progressBar"></div></div>
+        <div id="status"></div>
+      </div>
+    </div></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn-gold" onclick="playAd()">▶ 광고 재생 (목소리 + 화면)</button>
+      <button class="btn-danger" onclick="stopAd()">■ 정지</button>
+      <button class="btn-navy" onclick="toggleFull()">⛶ 전체화면으로 보기</button>
+    </div>
+    <p class="note">재생은 크롬에서 가장 잘 됩니다. 목소리가 안 나오면 기기 음량을 확인하고, 미리듣기 버튼으로 목소리가 있는지 먼저 확인하세요.</p>
+    <div class="row">
+      <button class="btn-gold" onclick="downloadVideo()">⬇ 영상 다운로드 (목소리 + 화면 + 배경음악, webm)</button>
+    </div>
+    <p class="note" id="dlStatus">아직 만들지 않았습니다.</p>
+    <p class="note">다운로드되는 영상에는 2단계에서 고른 목소리와 같은 성별·번호의 목소리가 들어갑니다. 예를 들어 2단계에서 여성 2를 골랐으면 다운로드도 여성 2 목소리입니다. 따로 목소리를 다시 고를 필요가 없습니다. 만드는 데 문장 개수만큼 시간이 걸립니다. 다운로드 목소리는 서버에서 받아옵니다. 서버가 안 되면 오류 문구가 뜹니다. 미리보기(재생)는 기기 목소리라 바로 됩니다.</p>
+    <p class="note">문의처: 앱 문의) shs목사 · ttd0732@hanmail.net</p>
+  </div>
+</main>
+<audio id="bgmAudio" loop></audio>
+<script>
+let mode='subtitle', ratio='vertical', bgColor='#101828', bgData='', playing=false, sentences=[], curIdx=-1, toneName='기본', bgmMode='bgm1', bgmVol=0.35;
+let audioCtx=null, padNodes=[], padTimer=null, previewTimer=null;
+function stopPad(){ if(padTimer) clearInterval(padTimer); padTimer=null; padNodes.forEach(n=>{try{n.stop();}catch(e){}}); padNodes=[]; if(audioCtx){try{audioCtx.close();}catch(e){} audioCtx=null;} }
+function startPad(kind){
+  try{
+    if(!window.AudioContext && !window.webkitAudioContext) return;
+    stopPad();
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended' && audioCtx.resume) audioCtx.resume().catch(()=>{});
+    const master=audioCtx.createGain(); master.gain.value=bgmVol; master.connect(audioCtx.destination);
+    if(kind==='piano'||kind==='melody'){
+      const seq = kind==='piano' ? [261.63,329.63,392,493.88,392,329.63,261.63,196] : [523.25,587.33,659.25,783.99,659.25,587.33,523.25,440];
+      let ni=0;
+      const playNote=()=>{
+        if(!audioCtx) return;
+        const f=seq[ni%seq.length]; ni++;
+        const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+        o.type='sine'; o.frequency.value=f;
+        const t=audioCtx.currentTime;
+        const hold= kind==='piano'?1.4:2.2;
+        g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.6,t+0.2); g.gain.linearRampToValueAtTime(0,t+hold);
+        o.connect(g); g.connect(master); o.start(t); o.stop(t+hold+0.1); padNodes.push(o);
+      };
+      playNote(); padTimer=setInterval(playNote, kind==='piano'?700:1100);
+      return;
+    }
+    const chords = kind==='warm' ? [[392,493.88,587.33],[329.63,392,493.88],[261.63,329.63,392],[293.66,369.99,440]] : [[261.63,329.63,392],[392,493.88,587.33],[220,261.63,329.63],[174.61,220,261.63]];
+    let ci=0;
+    const playChord=()=>{
+      if(!audioCtx) return;
+      const freqs=chords[ci%chords.length]; ci++;
+      freqs.forEach(f=>{
+        const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+        o.type= kind==='warm'?'triangle':'sine'; o.frequency.value=f;
+        const t=audioCtx.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.5,t+1.5); g.gain.linearRampToValueAtTime(0,t+4);
+        o.connect(g); g.connect(master); o.start(t); o.stop(t+4.2); padNodes.push(o);
+      });
+    };
+    playChord(); padTimer=setInterval(playChord, 4000);
+  }catch(e){}
+}
+function bgmTrackSrc(mode){ return mode && mode.indexOf('bgm')===0 ? 'bgm/'+mode+'.mp3' : null; }
+function setBgmMode(v){
+  bgmMode=v;
+  const n=document.getElementById('bgmNote'); if(!n) return;
+  if(v==='file' && !$('bgmAudio').src) n.textContent='파일을 아직 올리지 않았습니다. 아래에서 음악 파일을 올려주세요.';
+  else if(v==='none') n.textContent='배경음악 없이 재생합니다.';
+  else if(bgmTrackSrc(v)) n.textContent='배경음악 '+v.slice(3)+'이 선택됐습니다. 미리듣기 버튼으로 들어보세요.';
+  else n.textContent='배경음악이 선택됐습니다. 미리듣기 버튼으로 들어보세요.';
+}
+function previewBgm(){
+  stopAd(true);
+  const bgm=$('bgmAudio');
+  if(bgmMode==='none'){ alert('배경음악을 먼저 골라주세요. (배경음악 1~10 중 하나를 선택하세요.)'); return; }
+  const track=bgmTrackSrc(bgmMode);
+  if(track) bgm.src=track;
+  if(!bgm.src){ alert('배경음악 파일을 먼저 올려주세요.'); return; }
+  bgm.volume=bgmVol*0.5; bgm.play().catch(()=>{});
+  clearTimeout(previewTimer); previewTimer=setTimeout(()=>{bgm.pause();},6000);
+  const n=document.getElementById('bgmNote'); if(n) n.textContent='배경음악 미리듣기 중입니다 (6초 뒤 자동으로 멈춥니다). 정지 버튼을 누르면 바로 멈춥니다.';
+}
+/* 영상 다운로드 (목소리 포함) — Edge 음성으로 MP3를 받아 캔버스 화면과 함께 webm으로 녹화 */
+const EDGE_TOKEN='6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+const EDGE_WSS='wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1';
+function edgeUuid(){ return 'xxxxxxxx-xxxx-xxxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{ const r=Math.random()*16|0; const v=c==='x'?r:(r&0x3|0x8); return v.toString(16); }); }
+async function edgeGec(){
+  const ticks=BigInt(Math.floor(Date.now()/1000))+11644473600n;
+  const rounded=ticks-(ticks%300n);
+  const windowsTicks=rounded*10000000n;
+  const data=new TextEncoder().encode(windowsTicks.toString()+EDGE_TOKEN);
+  const hash=await crypto.subtle.digest('SHA-256',data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function escXml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function parseEdgeAudio(arr){
+  if(arr.length>=2){ const hl=(arr[0]<<8)|arr[1]; if(hl>0 && hl<arr.length) return arr.slice(2+hl); }
+  const needle=new TextEncoder().encode('Path:audio\r\n');
+  for(let i=0;i<=arr.length-needle.length;i++){ let ok=true; for(let j=0;j<needle.length;j++) if(arr[i+j]!==needle[j]){ok=false;break;} if(ok) return arr.slice(i+needle.length); }
+  return null;
+}
+function edgeSynthesize(text, voiceName){
+  return new Promise(async (resolve,reject)=>{
+    try{
+      const gec=await edgeGec(); const reqId=edgeUuid();
+      const url=EDGE_WSS+'?Ocp-Apim-Subscription-Key='+EDGE_TOKEN+'&Sec-MS-GEC='+gec+'&Sec-MS-GEC-Version=1-155.0.4283.45&ConnectionId='+reqId;
+      const ws=new WebSocket(url); ws.binaryType='arraybuffer'; const chunks=[];
+      const timer=setTimeout(()=>{ try{ws.close();}catch(e){} reject(new Error('timeout')); },30000);
+      ws.onopen=()=>{
+        const ts=new Date().toUTCString();
+        ws.send('X-Timestamp:'+ts+'\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":false,"wordBoundaryEnabled":true},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}');
+        const rate=Math.round((parseFloat($('rate').value||1)-1)*100);
+        const rateStr=(rate>=0?'+':'')+rate+'%';
+        const ssml='<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="ko-KR"><voice name="'+voiceName+'"><prosody rate="'+rateStr+'">'+escXml(text)+'</prosody></voice></speak>';
+        ws.send('X-RequestId:'+reqId+'\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:'+ts+'\r\nPath:ssml\r\n\r\n'+ssml);
+      };
+      ws.onmessage=(ev)=>{
+        if(typeof ev.data==='string'){ if(ev.data.indexOf('Path:turn.end')>=0){ try{ws.close();}catch(e){} } return; }
+        const arr=new Uint8Array(ev.data); const audio=parseEdgeAudio(arr); if(audio) chunks.push(audio);
+      };
+      ws.onerror=()=>{ clearTimeout(timer); reject(new Error('websocket error')); };
+      ws.onclose=()=>{ clearTimeout(timer); const total=chunks.reduce((a,c)=>a+c.length,0); if(!total){ reject(new Error('no audio')); return; } const out=new Uint8Array(total); let off=0; chunks.forEach(c=>{out.set(c,off); off+=c.length;}); resolve(out.buffer); };
+    }catch(e){ reject(e); }
+  });
+}
+function drawDlFrame(ctx, W, H, activeIdx, isEnd){
+  const title=$('title').value.trim()||'광고';
+  ctx.fillStyle=(typeof bgColor==='string' && bgColor.startsWith('#'))?bgColor:'#101828'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#f0b429'; ctx.fillRect(0,0,W,8);
+  ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.font='bold 54px "Malgun Gothic",sans-serif';
+  wrapText(ctx,title,W-120).forEach((l,j)=>ctx.fillText(l,W/2,90+j*60));
+  if(isEnd){
+    ctx.fillStyle='#fff'; ctx.font='bold 72px "Malgun Gothic",sans-serif'; ctx.fillText('감사합니다.',W/2,H/2);
+    return;
+  }
+  let y=250;
+  sentences.forEach((s,i)=>{
+    const active=i===activeIdx;
+    ctx.font= active ? 'bold 48px "Malgun Gothic",sans-serif' : '36px "Malgun Gothic",sans-serif';
+    ctx.fillStyle= active ? '#ffffff' : '#96a5b9';
+    let line=''; const lines=[];
+    for(const ch of s){ const t=line+ch; if(ctx.measureText(t).width>W-160 && line){ lines.push(line); line=ch; } else line=t; }
+    if(line) lines.push(line);
+    lines.forEach(ln=>{ ctx.fillText(ln,W/2,y); y+= active?62:48; });
+    y+=22;
+  });
+  if(sentences.length && activeIdx>=0){ ctx.fillStyle='#f0b429'; ctx.fillRect(60,H-50,(W-120)*((activeIdx+1)/sentences.length),10); }
+}
+function startDlPad(ctx, dest, kind){
+  const master=ctx.createGain(); master.gain.value=bgmVol; master.connect(dest);
+  const chords = kind==='warm' ? [[392,493.88,587.33],[329.63,392,493.88],[261.63,329.63,392],[293.66,369.99,440]] : [[261.63,329.63,392],[392,493.88,587.33],[220,261.63,329.63],[174.61,220,261.63]];
+  let ci=0; const nodes=[];
+  const playChord=()=>{
+    const freqs=chords[ci%chords.length]; ci++;
+    freqs.forEach(f=>{ const o=ctx.createOscillator(), g=ctx.createGain(); o.type= kind==='warm'?'triangle':'sine'; o.frequency.value=f; const t=ctx.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.5,t+1.5); g.gain.linearRampToValueAtTime(0,t+4); o.connect(g); g.connect(master); o.start(t); o.stop(t+4.2); nodes.push(o); });
+  };
+  playChord(); const timer=setInterval(playChord,4000);
+  return ()=>{ clearInterval(timer); nodes.forEach(n=>{try{n.stop();}catch(e){}}); try{master.disconnect();}catch(e){} };
+}
+/* 2단계에서 고른 목소리와 같은 성별·번호의 다운로드용 목소리를 고릅니다. 따로 고를 필요가 없습니다. */
+const DL_FEMALE=['ko-KR-SunHiNeural','ko-KR-JiMinNeural','ko-KR-SeoHyeonNeural','ko-KR-YuJinNeural','ko-KR-SoonBokNeural'];
+const DL_MALE=['ko-KR-InJoonNeural','ko-KR-HyunjunNeural','ko-KR-BongJinNeural'];
+function dlVoiceFromStep2(){
+  const sel=$('voice'); const opt=sel && sel.options[sel.selectedIndex]; const txt=opt?opt.textContent:'';
+  let m=txt.match(/^여성\s*(\d+)/); if(m) return DL_FEMALE[Math.min(parseInt(m[1])-1, DL_FEMALE.length-1)];
+  m=txt.match(/^남성\s*(\d+)/); if(m) return DL_MALE[Math.min(parseInt(m[1])-1, DL_MALE.length-1)];
+  return DL_FEMALE[0];
+}
+async function proxySynthesize(text, voiceName){
+  const ratePct=Math.max(-50, Math.min(50, Math.round((parseFloat($('rate').value||1)-1)*100)));
+  const url='/api/tts?voice='+encodeURIComponent(voiceName)+'&text='+encodeURIComponent(text)+'&rate='+ratePct;
+  const res=await fetch(url);
+  if(!res.ok) throw new Error('server '+res.status);
+  const buf=await res.arrayBuffer();
+  if(!buf.byteLength) throw new Error('empty audio');
+  return new Uint8Array(buf);
+}
+let dlBusy=false;
+async function downloadVideo(){
+  if(dlBusy) return; dlBusy=true;
+  const status=$('dlStatus'); const setStatus=t=>{ if(status) status.textContent=t; };
+  try{
+    renderStage();
+    if(!sentences.length){ alert('광고 내용을 먼저 적어주세요.'); dlBusy=false; return; }
+    const voiceName=dlVoiceFromStep2();
+    setStatus('다운로드용 음성을 만드는 중입니다…');
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC){ alert('이 브라우저는 영상 다운로드를 지원하지 않습니다. 크롬이나 Edge로 열어주세요.'); dlBusy=false; return; }
+    const ctx=new AC(); if(ctx.state==='suspended' && ctx.resume) await ctx.resume();
+    const buffers=[];
+    for(let i=0;i<sentences.length;i++){ setStatus('음성 만드는 중… ('+(i+1)+'/'+sentences.length+')'); const mp3=await proxySynthesize(applyDict(sentences[i]), voiceName); buffers.push(await ctx.decodeAudioData(mp3.slice(0))); }
+    const vertical=ratio==='vertical'; const W=vertical?720:1280, H=vertical?1280:720;
+    const canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H; const cctx=canvas.getContext('2d');
+    const dest=ctx.createMediaStreamDestination();
+    const monitor=ctx.createGain(); monitor.gain.value=1; monitor.connect(ctx.destination);
+    const canvasStream=canvas.captureStream(30);
+    const combined=new MediaStream([...canvasStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    let mime='video/webm;codecs=vp9,opus'; if(!MediaRecorder.isTypeSupported(mime)) mime='video/webm;codecs=vp8,opus'; if(!MediaRecorder.isTypeSupported(mime)) mime='video/webm';
+    const rec=new MediaRecorder(combined, MediaRecorder.isTypeSupported(mime)?{mimeType:mime}:undefined);
+    const chunks=[]; rec.ondataavailable=e=>{if(e.data.size) chunks.push(e.data);};
+    const done=new Promise(res=>{ rec.onstop=res; });
+    let stopPadFn=null; let fileAudio=null;
+    const bgmEl=$('bgmAudio');
+    const dlTrack=bgmTrackSrc(bgmMode);
+    const dlBgmSrc=dlTrack?dlTrack:bgmEl.src;
+    if(bgmMode!=='none' && dlBgmSrc){
+      try{ fileAudio=new Audio(dlBgmSrc); fileAudio.loop=true; const src=ctx.createMediaElementSource(fileAudio); const gv=ctx.createGain(); gv.gain.value=bgmVol*0.5; src.connect(gv); gv.connect(dest); gv.connect(monitor); fileAudio.play().catch(()=>{}); }catch(e){}
+    }
+    rec.start(); setStatus('영상 녹화 중입니다… (끝나면 자동 저장됩니다)');
+    const playBuf=buf=>new Promise(res=>{ const src=ctx.createBufferSource(); src.buffer=buf; src.connect(dest); src.connect(monitor); src.onended=res; src.start(); });
+    const wait=ms=>new Promise(res=>setTimeout(res,ms));
+    for(let i=0;i<buffers.length;i++){ drawDlFrame(cctx,W,H,i,false); setStatus('영상 녹화 중… ('+(i+1)+'/'+buffers.length+')'); await playBuf(buffers[i]); await wait(300); }
+    drawDlFrame(cctx,W,H,-1,true);
+    await wait(500);
+    if(stopPadFn) stopPadFn(); if(fileAudio) fileAudio.pause();
+    rec.stop(); await done;
+    const blob=new Blob(chunks,{type:'video/webm'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='광고영상_'+(($('title').value.trim()||'광고').replace(/[\\/:*?"<>|]/g,''))+'.webm'; a.click();
+    setStatus('영상 다운로드를 시작했습니다. 다운로드 폴더에서 확인하세요.');
+    try{ ctx.close(); }catch(e){}
+  }catch(e){
+    setStatus('다운로드용 음성을 서버에서 받지 못했습니다. 잠시 뒤 다시 시도해 주세요. 미리보기는 기기 목소리로 됩니다. ('+(e&&e.message?e.message:'오류')+')');
+  }
+  dlBusy=false;
+}
+const $=id=>document.getElementById(id);
+const DIGIT={'0':'공','1':'일','2':'이','3':'삼','4':'사','5':'오','6':'육','7':'칠','8':'팔','9':'구'};
+function spellDigits(s){return s.replace(/[0-9]/g,d=>DIGIT[d]);}
+function applyDict(text){
+  const lines=$('dict').value.split('\n');
+  lines.forEach(l=>{const p=l.split('='); if(p.length===2&&p[0].trim()) text=text.split(p[0].trim()).join(p[1].trim());});
+  return text;
+}
+function getSentences(){
+  const raw=$('body').value.trim();
+  if(!raw) return [];
+  return raw.split(/\n+/).flatMap(line=>line.split(/(?<=[.!?…])\s+/)).map(s=>s.trim()).filter(Boolean);
+}
+function renderStage(){
+  $('stageTitle').textContent=$('title').value.trim()||'제목을 적어주세요';
+  $('stageMeta').textContent='';
+  sentences=getSentences();
+  const box=$('sentences');
+  box.innerHTML = sentences.length ? sentences.map((s,i)=>`<p data-i="${i}">${escapeHtml(s)}</p>`).join('') : '<p>광고 내용을 적으면 여기에 문장들이 나타납니다.</p>';
+  $('endCard').style.display='none'; box.style.display='block';
+  $('progressBar').style.width='0%'; $('status').textContent='';
+}
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function setActive(i){
+  curIdx=i;
+  document.querySelectorAll('#sentences p').forEach(p=>p.classList.toggle('active', +p.dataset.i===i));
+  const el=document.querySelector(`#sentences p[data-i="${i}"]`);
+  if(el && mode==='rolling') el.scrollIntoView({block:'center',behavior:'smooth'});
+  if(sentences.length) $('progressBar').style.width=Math.round(((i+1)/sentences.length)*100)+'%';
+}
+function speakSentence(text, onend){
+  const u=new SpeechSynthesisUtterance(applyDict(text));
+  const v=$('voice').value;
+  const voice=speechSynthesis.getVoices().find(vv=>vv.voiceURI===v);
+  if(voice) u.voice=voice;
+  u.lang='ko-KR'; u.rate=parseFloat($('rate').value); u.pitch=parseFloat($('pitch').value);
+  u.onend=onend;
+  u.onerror=()=>{ $('status').textContent='목소리 재생에 실패했습니다. 핸드폰 미디어 음량과 무음 모드를 확인해 주세요.'; onend(); };
+  speechSynthesis.speak(u);
+}
+function playAd(){
+  renderStage();
+  if(!sentences.length){alert('광고 내용을 먼저 적어주세요.');return;}
+  stopAd(true);
+  playing=true; $('status').textContent='재생 중…';
+  const bgm=$('bgmAudio'); const track=bgmTrackSrc(bgmMode); if(track) bgm.src=track; if(bgmMode!=='none' && bgm.src){bgm.volume=bgmVol*0.5; bgm.play().catch(()=>{});}
+  let i=0;
+  const next=()=>{
+    if(!playing) return;
+    if(i>=sentences.length){ showEnd(); return; }
+    setActive(i);
+    const text=sentences[i]; i++;
+    speakSentence(text, ()=>{ if(playing) next(); });
+  };
+  next();
+}
+function showEnd(){
+  playing=false; stopPad();
+  const bgm=$('bgmAudio'); bgm.pause();
+  $('sentences').style.display='none';
+  $('endText').textContent='감사합니다.';
+  $('endSub').textContent='';
+  $('endCard').style.display='block';
+  $('progressBar').style.width='100%';
+  $('status').textContent='광고가 끝났습니다.';
+}
+function stopAd(silent){
+  playing=false; speechSynthesis.cancel(); stopPad();
+  const bgm=$('bgmAudio'); bgm.pause(); bgm.currentTime=0;
+  if(!silent) $('status').textContent='정지했습니다.';
+}
+function previewVoice(){
+  const s=getSentences();
+  if(!s.length){alert('광고 내용을 먼저 적어주세요.');return;}
+  speechSynthesis.cancel();
+  $('status').textContent='미리듣기 재생 중…';
+  speakSentence(s[0], ()=>{ if($('status').textContent==='미리듣기 재생 중…') $('status').textContent='미리듣기가 끝났습니다.'; });
+}
+function testVoice(){
+  speechSynthesis.cancel();
+  $('status').textContent='테스트 목소리를 재생합니다…';
+  speakSentence('주일 예배에 초대합니다.', ()=>{ if($('status').textContent==='테스트 목소리를 재생합니다…') $('status').textContent='테스트 목소리가 끝났습니다.'; });
+}
+function setTone(rate,pitch,name){
+  $('rate').value=rate; $('pitch').value=pitch; toneName=name;
+  $('toneNow').textContent='현재 느낌: '+name;
+}
+function setMode(m){
+  mode=m;
+  $('modeSubBtn').className = m==='subtitle'?'btn-gold':'btn-line';
+  $('modeRollBtn').className = m==='rolling'?'btn-gold':'btn-line';
+  renderStage();
+}
+function setRatio(r){
+  ratio=r; $('stage').classList.toggle('wide', r==='wide');
+}
+function setBg(c){ bgColor=c; $('stage').style.background=c; $('bgImg').style.display='none'; bgData=''; }
+function loadBg(input){
+  const f=input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{ bgData=e.target.result; const img=$('bgImg'); img.src=bgData; img.style.display='block'; };
+  r.readAsDataURL(f);
+}
+function loadBgm(input){
+  const f=input.files[0]; if(!f) return;
+  $('bgmAudio').src=URL.createObjectURL(f);
+  bgmMode='file'; $('bgmMode').value='file';
+  const n=document.getElementById('bgmNote'); if(n) n.textContent='내 파일이 들어갔습니다. 미리듣기 버튼으로 들어보세요.';
+}
+function toggleFull(){
+  const el=$('stage');
+  if(document.fullscreenElement) document.exitFullscreen();
+  else if(el.requestFullscreen) el.requestFullscreen();
+}
+function applyTpl(kind){
+  const t={
+    worship:{title:'주일 예배에 초대합니다',body:'매주 주일 오전 11시, 살아나는교회에서 예배가 있습니다.\n처음 오시는 분도 편하게 오세요.\n따뜻한 환영과 은혜로운 말씀이 기다리고 있습니다.'},
+    event:{title:'교회 행사 안내',body:'이번 주에 특별한 교회 행사가 있습니다.\n가족과 함께 오셔서 은혜를 나누세요.\n자세한 내용은 교회로 문의해 주세요.'},
+    evangelism:{title:'예수님을 만나보세요',body:'지친 마음으로 오세요.\n예수님 안에서 참된 평안을 만날 수 있습니다.\n이번 주일, 교회에서 기다리겠습니다.'},
+    free:{title:'',body:''}
+  }[kind];
+  $('title').value=t.title; $('body').value=t.body;
+  renderStage();
+}
+function wrapText(ctx,text,maxW){
+  const words=text.split(' '); const lines=[]; let line='';
+  words.forEach(w=>{ const t=line?line+' '+w:w; if(ctx.measureText(t).width>maxW && line){lines.push(line); line=w;} else line=t; });
+  if(line) lines.push(line); return lines;
+}
+function guessGender(name){
+  const n=(name||'').toLowerCase();
+  if(n.includes('female')||n.includes('여성')||n.includes('여자')) return 'female';
+  if(n.includes('male')||n.includes('남성')||n.includes('남자')) return 'male';
+  const f=['heami','sunhi','yuna','jimin','seohyeon','soonbok','yujin','google'];
+  const m=['hyunjun','injoon','bongjin','gookmin','seonghoon','daehyun'];
+  if(f.some(k=>n.includes(k))) return 'female';
+  if(m.some(k=>n.includes(k))) return 'male';
+  return 'unknown';
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function loadVoices(){
+  const vs=speechSynthesis.getVoices();
+  const ko=vs.filter(v=>v.lang && v.lang.toLowerCase().startsWith('ko'));
+  const list=ko.length?ko:vs;
+  const sel=$('voice');
+  const groups=[['female','여성 목소리'],['male','남성 목소리'],['unknown','기타 (성별 표시 없음)']];
+  let html='', counts={female:0,male:0,unknown:0};
+  groups.forEach(([g,label])=>{
+    const items=list.filter(v=>guessGender(v.name)===g);
+    counts[g]=items.length;
+    if(!items.length) return;
+    html+='<optgroup label="'+label+'">';
+    items.forEach((v,idx)=>{
+      const num=(g==='female'?'여성 ':(g==='male'?'남성 ':'기타 '))+(idx+1);
+      html+='<option value="'+esc(v.voiceURI)+'">'+num+' ('+esc(v.name)+')</option>';
+    });
+    html+='</optgroup>';
+  });
+  sel.innerHTML=html||'<option>사용 가능한 음성이 없습니다</option>';
+  const note=$('voiceNote');
+  if(note){
+    if(!ko.length && vs.length) note.textContent='참고: 이 기기에 한국어 음성이 없어 전체 목록을 보여줍니다.';
+    else if(counts.male===0 && counts.female>0) note.textContent='이 기기에는 남성 한국어 목소리가 없습니다. 핸드폰과 컴퓨터는 목록이 다르니, 다른 기기에서는 남성 목소리가 나올 수 있습니다.';
+    else if(counts.female===0 && counts.male>0) note.textContent='이 기기에는 여성 한국어 목소리가 없습니다. 핸드폰과 컴퓨터는 목록이 다르니, 다른 기기에서는 여성 목소리가 나올 수 있습니다.';
+    else note.textContent='여성 '+counts.female+'개 · 남성 '+counts.male+'개가 있습니다. 광고마다 골라 쓰세요.';
+  }
+}
+if('speechSynthesis' in window){
+  loadVoices();
+  speechSynthesis.onvoiceschanged=loadVoices;
+} else {
+  $('voice').innerHTML='<option>이 브라우저는 음성 읽기를 지원하지 않습니다. 크롬으로 열어주세요.</option>';
+}
+['title','body'].forEach(id=>$(id).addEventListener('input',renderStage));
+renderStage();
+</script>
+</body>
+</html>
