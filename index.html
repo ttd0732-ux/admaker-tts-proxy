@@ -66,8 +66,8 @@
     <h2>사용법</h2>
     <p class="note" style="font-size:15px;color:#222">① 광고 내용을 적는다 → ② 목소리를 고른다 → ③ 화면·배경음악을 고른다 → ④ 미리보기에서 영상 다운로드를 누른다. 다운로드되는 영상에는 목소리, 배경음악, 배경이 모두 합쳐져 들어갑니다.</p>
   </div>
-  <div class="card">
-    <h2>1단계 · 광고 종류와 내용</h2>
+  <div class="card" style="border-left:5px solid #1e3a5f">
+    <h2><span style="display:inline-block;background:#1e3a5f;color:#fff;padding:2px 12px;border-radius:12px;font-size:18px;vertical-align:middle">1단계</span> 광고 종류와 내용</h2>
     <div class="row">
       <button class="btn-line tpl" onclick="applyTpl('worship')">주일 예배 광고 안내</button>
       <button class="btn-line tpl" onclick="applyTpl('event')">행사 안내</button>
@@ -93,8 +93,8 @@
     <div class="row"><button class="btn-line" onclick="resetAd()">↺ 리셋 (다시 듣고 다시 받기)</button></div>
   </div>
 
-  <div class="card">
-    <h2>2단계 · 목소리 고르기</h2>
+  <div class="card" style="border-left:5px solid #f0b429">
+    <h2><span style="display:inline-block;background:#f0b429;color:#1e3a5f;padding:2px 12px;border-radius:12px;font-size:18px;vertical-align:middle">2단계</span> 목소리 고르기</h2>
     <p class="note">목소리는 서버에서 소리가 확인된 3개(여성 1개, 남성 2개) 중에서 고릅니다. 미리보기와 다운로드 영상에 같은 목소리가 들어갑니다. 고르기 전에 꼭 미리듣기로 확인하세요.</p>
     <label for="voice">목소리</label>
     <select id="voice">
@@ -137,8 +137,8 @@
     </details>
   </div>
 
-  <div class="card">
-    <h2>3단계 · 화면 고르기</h2>
+  <div class="card" style="border-left:5px solid #14352a">
+    <h2><span style="display:inline-block;background:#14352a;color:#fff;padding:2px 12px;border-radius:12px;font-size:18px;vertical-align:middle">3단계</span> 화면 고르기</h2>
     <label>화면 움직임 (네 가지 다 들어 있습니다)</label>
     <div class="row">
       <button class="btn-gold" id="modeSubBtn" onclick="setMode('subtitle')">자막식 · 읽는 문장만 밝게</button>
@@ -195,8 +195,8 @@
     <div class="row"><button class="btn-line" onclick="resetAd()">↺ 리셋 (다시 듣고 다시 받기)</button></div>
   </div>
 
-  <div class="card">
-    <h2>4단계 · 미리보기와 영상 다운로드</h2>
+  <div class="card" style="border-left:5px solid #571B1B">
+    <h2><span style="display:inline-block;background:#571B1B;color:#fff;padding:2px 12px;border-radius:12px;font-size:18px;vertical-align:middle">4단계</span> 미리보기와 영상 다운로드</h2>
     <label for="churchName">교회이름 (광고 오른쪽 위에 작은 로고처럼 나옵니다)</label>
     <input type="text" id="churchName" value="살아나는교회" oninput="renderStage()">
     <div id="stageWrap"><div id="stage">
