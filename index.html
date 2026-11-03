@@ -32,7 +32,7 @@
   #stage.wide{max-width:640px;aspect-ratio:16/9}
   #stage .bgphoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45}
   #stage .inner{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
-  #stageTitle{font-size:24px;font-weight:800;text-align:center;margin:0 0 12px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+  #stageTitle{font-size:24px;font-weight:800;text-align:center;margin:24px 0 12px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
   #churchBadge{position:absolute;top:14px;right:20px;z-index:5;background:rgba(0,0,0,.35);border:1.5px solid var(--gold);color:var(--gold);border-radius:16px;padding:4px 10px;font-size:14px;font-weight:700}
   #stageMeta{font-size:14px;text-align:center;color:#ffe9a8;margin-bottom:10px}
   #sentences{flex:1;overflow-y:auto;padding-right:2px}
@@ -98,9 +98,9 @@
     <p class="note">목소리는 서버에서 소리가 확인된 3개(여성 1개, 남성 2개) 중에서 고릅니다. 미리보기와 다운로드 영상에 같은 목소리가 들어갑니다. 고르기 전에 꼭 미리듣기로 확인하세요.</p>
     <label for="voice">목소리</label>
     <select id="voice">
-      <option value="ko-KR-SunHiNeural" selected>여성 1 (선희)</option>
-      <option value="ko-KR-InJoonNeural">남성 1 (인준)</option>
-      <option value="ko-KR-HyunsuMultilingualNeural">남성 2 (현수)</option>
+      <option value="ko-KR-SunHiNeural" selected>여성 1 (마리아)</option>
+      <option value="ko-KR-InJoonNeural">남성 1 (다윗)</option>
+      <option value="ko-KR-HyunsuMultilingualNeural">남성 2 (바울)</option>
     </select>
     <p class="note" id="voiceNote">미리보기와 영상에 같은 목소리가 들어갑니다.</p>
     <label>목소리 느낌 (속도·톤)</label>
@@ -347,7 +347,7 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
   ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#f0b429'; ctx.fillRect(0,0,W,8);
   ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.font='bold 54px "Malgun Gothic",sans-serif';
-  wrapText(ctx,title,W-120).forEach((l,j)=>ctx.fillText(l,W/2,90+j*60));
+  wrapText(ctx,title,W-120).forEach((l,j)=>ctx.fillText(l,W/2,110+j*60));
   const church=($('churchName')?$('churchName').value.trim():'');
   if(church){
     ctx.font='bold 22px "Malgun Gothic",sans-serif';
