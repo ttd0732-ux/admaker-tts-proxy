@@ -121,9 +121,20 @@
     <button class="btn-line" onclick="testVoice()">🔊 목소리 테스트 (광고 내용 없이, "주일 예배에 초대합니다")</button>
     <button class="btn-line" onclick="resetAd()">↺ 리셋 (다시 듣고 다시 받기)</button>
     <p class="note">미리듣기에서 소리가 안 나면 이 테스트 버튼을 먼저 눌러보세요. 광고 내용을 적지 않아도 됩니다. 테스트에서도 안 나면 핸드폰 미디어 음량과 무음 모드를 확인해 주세요.</p>
-    <label for="dict">발음 교정 (예: 010 → 공일공, 한 줄에 하나씩 “찾을말=읽을말”)</label>
-    <textarea id="dict" style="min-height:60px" placeholder="010=공일공&#10;살아나는교회=살아나는 교회" oninput="updateDictNote()"></textarea>
-    <p class="note" id="dictNote">발음교정 내용이 없습니다. 한 줄에 하나씩 “찾을말=읽을말”로 적어주세요. (예: 010=공일공)</p>
+    <label for="dict">발음 교정 (화면 글자는 그대로, 목소리가 읽는 법만 바꿉니다. 한 줄에 하나씩 “찾을말=읽을말”)</label>
+    <textarea id="dict" style="min-height:60px" placeholder="CTS=씨티에스&#10;살아나는교회=살아나는 교회&#10;새벽기도회=새벽 기도회" oninput="updateDictNote()"></textarea>
+    <p class="note" id="dictNote">발음교정 내용이 없습니다. 한 줄에 하나씩 “찾을말=읽을말”로 적어주세요. (예: CTS=씨티에스)</p>
+    <details style="margin-top:8px">
+      <summary style="cursor:pointer;font-weight:bold;color:#1e3a5f">발음교정 예시와 설명 (펼치기)</summary>
+      <ul style="font-size:14px;line-height:1.8;color:#333;margin:8px 0 0 0;padding-left:20px">
+        <li><b>무엇이 바뀌나요:</b> 화면에 보이는 글자는 그대로 두고, 목소리가 읽는 법만 바꿉니다. (예: 화면에는 "CTS", 목소리는 "씨티에스")</li>
+        <li><b>적는 법:</b> 한 줄에 하나씩 "원래말=읽을말"로 적습니다. = 대신 → 나 -&gt; 도 됩니다.</li>
+        <li><b>예시 (한 줄에 하나씩):</b><br>CTS=씨티에스<br>VBS=브이비에스<br>살아나는교회=살아나는 교회<br>새벽기도회=새벽 기도회<br>다니엘기도회=다니엘 기도회<br>추수감사절=추수 감사절</li>
+        <li><b>원래말은 광고 내용에 적힌 그대로</b> 적으세요 (띄어쓰기까지 똑같이). 다르면 적용되지 않습니다.</li>
+        <li><b>전화번호는 따로 적지 않으셔도 됩니다.</b> 010-2658-5162처럼 적으면 자동으로 자릿수대로 읽힙니다.</li>
+        <li><b>읽을말은 한글로</b> 적는 것이 가장 확실합니다. 적으면 아래에 "N개 적용"이 뜨고, 미리듣기와 다운로드 목소리에 모두 반영됩니다.</li>
+      </ul>
+    </details>
   </div>
 
   <div class="card">
@@ -551,7 +562,7 @@ function applyDict(text){
 function updateDictNote(){
   const el=$('dictNote'); if(!el) return;
   const n=parseDict().length;
-  el.textContent = n ? ('발음교정 '+n+'개가 적용됩니다. 미리듣기와 다운로드 목소리에 모두 반영됩니다.') : '발음교정 내용이 없습니다. 한 줄에 하나씩 “찾을말=읽을말”로 적어주세요. (예: 010=공일공)';
+  el.textContent = n ? ('발음교정 '+n+'개가 적용됩니다. 미리듣기와 다운로드 목소리에 모두 반영됩니다.') : '발음교정 내용이 없습니다. 한 줄에 하나씩 “찾을말=읽을말”로 적어주세요. (예: CTS=씨티에스)';
 }
 function getSentences(){
   const raw=$('body').value.trim();
