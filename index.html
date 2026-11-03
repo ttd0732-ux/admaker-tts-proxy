@@ -182,10 +182,11 @@
     </div>
     <p class="note">재생은 크롬에서 가장 잘 됩니다. 목소리가 안 나오면 기기 음량을 확인하고, 미리듣기 버튼으로 목소리가 있는지 먼저 확인하세요.</p>
     <div class="row">
-      <button class="btn-gold" onclick="downloadVideo()">⬇ 영상 다운로드 (목소리 + 화면 + 배경음악, webm)</button>
+      <button class="btn-gold" onclick="downloadVideo()">⬇ 영상 다운로드 (목소리 + 화면 + 배경음악)</button>
+      <button class="btn-line" onclick="resetAd()">↺ 리셋 (다시 듣고 다시 받기)</button>
     </div>
     <p class="note" id="dlStatus">아직 만들지 않았습니다.</p>
-    <p class="note">다운로드되는 영상에는 2단계에서 고른 목소리가 들어갑니다. 만드는 데 문장 개수만큼 시간이 걸립니다. 다운로드 목소리는 서버에서 받아옵니다. 서버가 안 되면 오류 문구가 뜹니다.</p>
+    <p class="note">다운로드되는 영상에는 2단계에서 고른 목소리가 들어갑니다. 만드는 데 문장 개수만큼 시간이 걸립니다. 다운로드 목소리는 서버에서 받아옵니다. 서버가 안 되면 오류 문구가 뜹니다. 파일은 기기에서 MP4를 지원하면 .mp4로, 안 되면 .webm으로 저장됩니다.</p>
     <p class="note">문의처: 앱 문의) shs목사 · ttd0732@hanmail.net</p>
   </div>
 </main>
@@ -259,7 +260,7 @@ function previewBgm(){
   clearTimeout(previewTimer); previewTimer=setTimeout(()=>{bgm.pause();},6000);
   const n=document.getElementById('bgmNote'); if(n) n.textContent='배경음악 미리듣기 중입니다 (6초 뒤 자동으로 멈춥니다). 정지 버튼을 누르면 바로 멈춥니다.';
 }
-/* 영상 다운로드 (목소리 포함) — Edge 음성으로 MP3를 받아 캔버스 화면과 함께 webm으로 녹화 */
+/* 영상 다운로드 (목소리 포함) — Edge 음성으로 MP3를 받아 캔버스 화면과 함께 영상으로 녹화 */
 const EDGE_TOKEN='6A5AA1D4EAFF4E9FB37E23D68491D6F4';
 const EDGE_WSS='wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1';
 function edgeUuid(){ return 'xxxxxxxx-xxxx-xxxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{ const r=Math.random()*16|0; const v=c==='x'?r:(r&0x3|0x8); return v.toString(16); }); }
@@ -400,8 +401,11 @@ async function downloadVideo(){
     const monitor=ctx.createGain(); monitor.gain.value=1; monitor.connect(ctx.destination);
     const canvasStream=canvas.captureStream(30);
     const combined=new MediaStream([...canvasStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
-    let mime='video/webm;codecs=vp9,opus'; if(!MediaRecorder.isTypeSupported(mime)) mime='video/webm;codecs=vp8,opus'; if(!MediaRecorder.isTypeSupported(mime)) mime='video/webm';
-    const rec=new MediaRecorder(combined, MediaRecorder.isTypeSupported(mime)?{mimeType:mime}:undefined);
+    const mimeCandidates=['video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+    let mime=''; for(const c of mimeCandidates){ if(MediaRecorder.isTypeSupported(c)){ mime=c; break; } }
+    let rec;
+    try{ rec=new MediaRecorder(combined, mime?{mimeType:mime}:undefined); }
+    catch(e){ mime='video/webm'; rec=new MediaRecorder(combined, MediaRecorder.isTypeSupported(mime)?{mimeType:mime}:undefined); }
     const chunks=[]; rec.ondataavailable=e=>{if(e.data.size) chunks.push(e.data);};
     const done=new Promise(res=>{ rec.onstop=res; });
     let stopPadFn=null; let fileAudio=null;
@@ -419,9 +423,11 @@ async function downloadVideo(){
     await wait(2500);
     if(stopPadFn) stopPadFn(); if(fileAudio) fileAudio.pause();
     rec.stop(); await done;
-    const blob=new Blob(chunks,{type:'video/webm'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='광고영상_'+(($('title').value.trim()||'광고').replace(/[\\/:*?"<>|]/g,''))+'.webm'; document.body.appendChild(a); a.click(); a.remove();
-    setStatus('영상 다운로드를 시작했습니다. 다운로드 폴더에서 확인하세요.');
+    const outType=(rec.mimeType||mime||'video/webm');
+    const ext=outType.indexOf('mp4')>=0?'.mp4':'.webm';
+    const blob=new Blob(chunks,{type:outType});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='광고영상_'+(($('title').value.trim()||'광고').replace(/[\\/:*?"<>|]/g,''))+ext; document.body.appendChild(a); a.click(); a.remove();
+    setStatus('영상 다운로드를 시작했습니다 ('+ext+' 파일). 다운로드 폴더에서 확인하세요.');
     try{ ctx.close(); }catch(e){}
   }catch(e){
     setStatus('영상 다운로드가 멈췄습니다 ['+dlStage+'] '+(e&&e.message?e.message:'오류')+'. 이 문구를 그대로 알려주세요.');
@@ -505,6 +511,14 @@ function stopAd(silent){
   playing=false; stopPreviewAudio(); stopPad();
   const bgm=$('bgmAudio'); bgm.pause(); bgm.currentTime=0;
   if(!silent) $('status').textContent='정지했습니다.';
+}
+function resetAd(){
+  if(dlBusy){ alert('영상 다운로드 중에는 리셋할 수 없습니다. 다운로드가 끝난 뒤 눌러주세요.'); return; }
+  stopAd(true);
+  curIdx=-1;
+  renderStage();
+  const ds=$('dlStatus'); if(ds) ds.textContent='';
+  $('status').textContent='처음 상태로 되돌렸습니다. 목소리를 바꿔서 다시 들어보고 다운로드하세요.';
 }
 async function previewVoice(){
   const s=getSentences();
