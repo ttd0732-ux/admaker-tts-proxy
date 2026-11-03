@@ -372,11 +372,17 @@ async function proxySynthesize(text, voiceName){
   const ratePct=Math.max(-50, Math.min(50, Math.round((parseFloat($('rate').value||1)-1)*100)));
   const pitchVal=parseFloat($('pitch').value||1);
   const url='/api/tts?voice='+encodeURIComponent(voiceName)+'&text='+encodeURIComponent(text)+'&rate='+ratePct+'&pitch='+encodeURIComponent(pitchVal);
-  const res=await fetch(url);
-  if(!res.ok) throw new Error('server '+res.status);
-  const buf=await res.arrayBuffer();
-  if(!buf.byteLength) throw new Error('empty audio');
-  return new Uint8Array(buf);
+  let lastErr=null;
+  for(let attempt=0; attempt<3; attempt++){
+    try{
+      const res=await fetch(url);
+      if(!res.ok){ let body=''; try{ body=await res.text(); }catch(e){} throw new Error('server '+res.status+(body ? ': '+body.slice(0,100) : '')); }
+      const buf=await res.arrayBuffer();
+      if(!buf.byteLength) throw new Error('empty audio');
+      return new Uint8Array(buf);
+    }catch(e){ lastErr=e; if(attempt<2) await new Promise(r=>setTimeout(r,1500)); }
+  }
+  throw lastErr;
 }
 let dlBusy=false;
 async function downloadVideo(){
@@ -392,7 +398,7 @@ async function downloadVideo(){
     if(!AC){ alert('이 브라우저는 영상 다운로드를 지원하지 않습니다. 크롬이나 Edge로 열어주세요.'); dlBusy=false; return; }
     const ctx=new AC(); if(ctx.state==='suspended' && ctx.resume) await ctx.resume();
     const buffers=[];
-    for(let i=0;i<sentences.length;i++){ setStatus('음성 만드는 중… ('+(i+1)+'/'+sentences.length+')'); const clean=stripSymbols(applyDict(sentences[i])); if(!clean){ buffers.push(ctx.createBuffer(1, Math.floor(ctx.sampleRate*0.3), ctx.sampleRate)); continue; } dlStage='음성 받기'; const mp3=await proxySynthesize(applyDict(sentences[i]), voiceName); dlStage='음성 풀기'; const ab=mp3.buffer.slice(mp3.byteOffset, mp3.byteOffset+mp3.byteLength); buffers.push(await ctx.decodeAudioData(ab)); }
+    for(let i=0;i<sentences.length;i++){ setStatus('음성 만드는 중… ('+(i+1)+'/'+sentences.length+')'); const clean=stripSymbols(applyDict(sentences[i])); if(!clean){ buffers.push(ctx.createBuffer(1, Math.floor(ctx.sampleRate*0.3), ctx.sampleRate)); continue; } dlStage='음성 받기'; const mp3=await proxySynthesize(applyDict(sentences[i]), voiceName); dlStage='음성 풀기'; const ab=mp3.buffer.slice(mp3.byteOffset, mp3.byteOffset+mp3.byteLength); buffers.push(await ctx.decodeAudioData(ab)); if(i<sentences.length-1) await new Promise(r=>setTimeout(r,400)); }
     const vertical=ratio==='vertical'; const W=vertical?720:1280, H=vertical?1280:720;
     const canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H; const cctx=canvas.getContext('2d');
     const dest=ctx.createMediaStreamDestination();
