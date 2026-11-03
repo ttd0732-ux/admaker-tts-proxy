@@ -5,10 +5,11 @@ The app cannot reach Microsoft Edge TTS directly from a browser
 for the audio and hands the MP3 back to the app. No API key, no paid
 service: it uses the same free Edge voices the app already uses.
 
-GET /api/tts?voice=ko-KR-SunHiNeural&text=...&rate=0
+GET /api/tts?voice=ko-KR-SunHiNeural&text=...&rate=0&pitch=1
   voice: one of the allow-listed Korean Edge voices below
   text:  one sentence, up to 1000 characters
   rate:  -50 .. +50 (percent, from the app speed slider; 0 = normal)
+  pitch: 0.5 .. 2.0 (multiplier, from the app tone slider; 1 = normal)
 
 Response: audio/mpeg with Access-Control-Allow-Origin: * so the app
 (in a browser, on any origin) can fetch and decode it.
@@ -32,12 +33,13 @@ ALLOWED_VOICES = {
 }
 
 
-async def collect_audio(text, voice, rate_str):
+async def collect_audio(text, voice, rate_str, pitch_str):
     from edge_tts import Communicate
 
     audio = bytearray()
     communicate = Communicate(
-        text, voice, rate=rate_str, connect_timeout=8, receive_timeout=25
+        text, voice, rate=rate_str, pitch=pitch_str,
+        connect_timeout=8, receive_timeout=25,
     )
     async for chunk in communicate.stream():
         if chunk.get("type") == "audio" and chunk.get("data"):
@@ -86,7 +88,14 @@ class handler(BaseHTTPRequestHandler):
                 rate_pct = 0
             rate_pct = max(-50, min(50, rate_pct))
             rate_str = ("+" if rate_pct >= 0 else "") + str(rate_pct) + "%"
-            audio = asyncio.run(collect_audio(text, voice, rate_str))
+            try:
+                pitch_val = float(query.get("pitch", ["1"])[0] or 1)
+            except (TypeError, ValueError):
+                pitch_val = 1.0
+            pitch_val = max(0.5, min(2.0, pitch_val))
+            pitch_hz = max(-100, min(100, int(round((pitch_val - 1) * 100))))
+            pitch_str = ("+" if pitch_hz >= 0 else "") + str(pitch_hz) + "Hz"
+            audio = asyncio.run(collect_audio(text, voice, rate_str, pitch_str))
             self._send(200, audio, "audio/mpeg")
         except Exception as exc:  # Edge failure, timeout, etc.
             self._send(502, "tts failed: " + str(exc)[:200], "text/plain; charset=utf-8")
