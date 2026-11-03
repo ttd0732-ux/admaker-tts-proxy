@@ -78,6 +78,18 @@
     <input type="text" id="title" placeholder="예: 살아나는교회 주일 예배에 초대합니다">
     <label for="body">광고 내용 (문장마다 엔터를 치면 호흡이 좋아집니다)</label>
     <textarea id="body" placeholder="예: 매주 주일 오전 11시, 살아나는교회에서 예배가 있습니다.&#10;처음 오시는 분도 편하게 오세요.&#10;따뜻한 환영과 은혜로운 말씀이 기다리고 있습니다."></textarea>
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;font-weight:bold;color:#1e3a5f">광고글 적을 때 유의사항 (펼치기)</summary>
+      <ul style="font-size:14px;line-height:1.8;color:#333;margin:8px 0 0 0;padding-left:20px">
+        <li><b>엔터를 치면 목소리가 잠깐 쉽니다.</b> 항목마다 엔터를 치면 또렷하게 구분됩니다 (주일 광고 항목에 좋습니다).</li>
+        <li><b>흘러가게 읽히게 하려면</b> 엔터 없이 한 문단으로 길게 적고, 쉴 곳에는 쉼표(,)를 쓰세요. 쉼표는 짧게 쉬고 이어집니다.</li>
+        <li><b>마침표(.)를 찍으면 문장이 나뉩니다.</b> 번호 뒤에는 띄어쓰지 말고 붙여 적으세요 (예: 1.오늘). "1. 오늘"처럼 띄우면 "1."이 따로 떨어집니다.</li>
+        <li><b>화면에서 글자가 아래 줄로 넘어가는 것은 목소리와 무관합니다.</b> 길어서 두 줄이 돼도 목소리는 한 번에 읽습니다.</li>
+        <li><b>숫자는 한글로 읽힙니다.</b> 15는 십오, 2026은 이천이십육으로 읽습니다 (화면 숫자는 그대로). 전화번호는 자릿수대로 읽습니다.</li>
+        <li><b>기호는 읽지 않습니다.</b> 괄호·※·★ 같은 기호는 목소리에서 빼고 읽습니다 (화면에는 그대로 보입니다). 읽는 법을 바꾸고 싶은 단어는 2단계 발음교정 칸에 '원래말=읽을말'로 적으세요.</li>
+        <li><b>영상 끝에는 '감사합니다.' 화면이 자동으로 나옵니다.</b> 본문 끝에 감사 인사를 따로 적지 않으셔도 됩니다.</li>
+      </ul>
+    </details>
     <div class="row"><button class="btn-line" onclick="resetAd()">↺ 리셋 (다시 듣고 다시 받기)</button></div>
   </div>
 
@@ -137,6 +149,11 @@
       <button class="btn-line" onclick="setBg(this,'#2b2b2b')">짙은 회색</button>
       <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#1e3a5f,#0e2242)')">남색 그라데이션</button>
       <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#14352a,#0e241c)')">초록 그라데이션</button>
+      <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#571B1B,#2A0808)')">깊은 포도주</button>
+      <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#3B1A5E,#1E0B33)')">짙은 자주</button>
+      <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#6E3B16,#38190A)')">따뜻한 황토</button>
+      <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#4A2C40,#221029)')">새벽 자줏빛</button>
+      <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#3B2F2A,#201915)')">따뜻한 숯·모카</button>
     </div>
     <label for="bgfile">배경 사진 (선택, 교회 사진 등을 올리면 배경으로 깔립니다)</label>
     <input type="file" id="bgfile" accept="image/*" onchange="loadBg(this)">
