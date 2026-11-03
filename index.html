@@ -33,6 +33,7 @@
   #stage .bgphoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45}
   #stage .inner{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
   #stageTitle{font-size:24px;font-weight:800;text-align:center;margin:0 0 12px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+  #churchBadge{position:absolute;top:14px;right:20px;z-index:5;background:rgba(0,0,0,.35);border:1.5px solid var(--gold);color:var(--gold);border-radius:16px;padding:4px 10px;font-size:14px;font-weight:700}
   #stageMeta{font-size:14px;text-align:center;color:#ffe9a8;margin-bottom:10px}
   #sentences{flex:1;overflow-y:auto;padding-right:2px}
   #sentences p{margin:0 0 14px;font-size:20px;line-height:1.55;color:#cbd5e1;transition:all .3s}
@@ -77,6 +78,7 @@
     <input type="text" id="title" placeholder="예: 살아나는교회 주일 예배에 초대합니다">
     <label for="body">광고 내용 (문장마다 엔터를 치면 호흡이 좋아집니다)</label>
     <textarea id="body" placeholder="예: 매주 주일 오전 11시, 살아나는교회에서 예배가 있습니다.&#10;처음 오시는 분도 편하게 오세요.&#10;따뜻한 환영과 은혜로운 말씀이 기다리고 있습니다."></textarea>
+    <div class="row"><button class="btn-line" onclick="resetAd()">↺ 리셋 (다시 듣고 다시 받기)</button></div>
   </div>
 
   <div class="card">
@@ -105,9 +107,11 @@
     <p class="note" id="toneNow">현재 느낌: 기본</p>
     <button class="btn-navy" onclick="previewVoice()">🔊 선택한 목소리 미리듣기 (첫 문장)</button>
     <button class="btn-line" onclick="testVoice()">🔊 목소리 테스트 (광고 내용 없이, "주일 예배에 초대합니다")</button>
+    <button class="btn-line" onclick="resetAd()">↺ 리셋 (다시 듣고 다시 받기)</button>
     <p class="note">미리듣기에서 소리가 안 나면 이 테스트 버튼을 먼저 눌러보세요. 광고 내용을 적지 않아도 됩니다. 테스트에서도 안 나면 핸드폰 미디어 음량과 무음 모드를 확인해 주세요.</p>
     <label for="dict">발음 교정 (예: 010 → 공일공, 한 줄에 하나씩 “찾을말=읽을말”)</label>
-    <textarea id="dict" style="min-height:60px" placeholder="010=공일공&#10;살아나는교회=살아나는 교회"></textarea>
+    <textarea id="dict" style="min-height:60px" placeholder="010=공일공&#10;살아나는교회=살아나는 교회" oninput="updateDictNote()"></textarea>
+    <p class="note" id="dictNote">발음교정 내용이 없습니다. 한 줄에 하나씩 “찾을말=읽을말”로 적어주세요. (예: 010=공일공)</p>
   </div>
 
   <div class="card">
@@ -160,12 +164,16 @@
     <label for="bgm">내 배경음악 파일 넣기 (선택)</label>
     <input type="file" id="bgm" accept="audio/*" onchange="loadBgm(this)">
     <p class="note">파일을 올리면 자동으로 '내 파일로 올린 음악 사용'으로 바뀝니다. 파일 음악은 저작권 없는 음악 파일만 올려주세요.</p>
+    <div class="row"><button class="btn-line" onclick="resetAd()">↺ 리셋 (다시 듣고 다시 받기)</button></div>
   </div>
 
   <div class="card">
     <h2>4단계 · 미리보기와 영상 다운로드</h2>
+    <label for="churchName">교회이름 (광고 오른쪽 위에 작은 로고처럼 나옵니다)</label>
+    <input type="text" id="churchName" value="살아나는교회" oninput="renderStage()">
     <div id="stageWrap"><div id="stage">
       <img id="bgImg" class="bgphoto" style="display:none" alt="">
+      <div id="churchBadge" style="display:none"></div>
       <div class="inner">
         <h3 id="stageTitle">제목을 적어주세요</h3>
         <div id="stageMeta"></div>
@@ -311,6 +319,18 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
   ctx.fillStyle='#f0b429'; ctx.fillRect(0,0,W,8);
   ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.font='bold 54px "Malgun Gothic",sans-serif';
   wrapText(ctx,title,W-120).forEach((l,j)=>ctx.fillText(l,W/2,90+j*60));
+  const church=($('churchName')?$('churchName').value.trim():'');
+  if(church){
+    ctx.font='bold 22px "Malgun Gothic",sans-serif';
+    const tw=ctx.measureText(church).width;
+    const bx=W-20-tw-20, by=14, bw=tw+20, bh=32;
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(bx,by,bw,bh,16); else ctx.rect(bx,by,bw,bh);
+    ctx.fill();
+    ctx.strokeStyle='#f0b429'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#f0b429'; ctx.textAlign='center'; ctx.fillText(church, bx+bw/2, by+23);
+  }
   if(isEnd){
     ctx.fillStyle='#fff'; ctx.font='bold 72px "Malgun Gothic",sans-serif';
     ctx.globalAlpha=fadeAlpha; ctx.fillText('감사합니다.',W/2,H/2); ctx.globalAlpha=1;
@@ -347,7 +367,7 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
       it.lines.forEach(ln=>{ if(yy>=210 && yy<=H-70) ctx.fillText(ln,W/2,yy); yy+= it.active?62:48; });
     });
   }
-  if(sentences.length && activeIdx>=0){ ctx.fillStyle='#f0b429'; ctx.fillRect(60,H-50,(W-120)*((activeIdx+1)/sentences.length),10); }
+  /* 다운로드 영상에는 노란색 진행 막대를 그리지 않는다 (미리보기 진행 막대는 별도로 유지) */
 }
 function startDlPad(ctx, dest, kind){
   const master=ctx.createGain(); master.gain.value=bgmVol; master.connect(dest);
@@ -438,10 +458,28 @@ async function downloadVideo(){
 const $=id=>document.getElementById(id);
 const DIGIT={'0':'공','1':'일','2':'이','3':'삼','4':'사','5':'오','6':'육','7':'칠','8':'팔','9':'구'};
 function spellDigits(s){return s.replace(/[0-9]/g,d=>DIGIT[d]);}
+function parseDict(){
+  const out=[];
+  $('dict').value.split('\n').forEach(l=>{
+    let sep=l.indexOf('=');
+    let arrowLen=1;
+    if(sep<0){ sep=l.indexOf('→'); }
+    if(sep<0){ sep=l.indexOf('->'); arrowLen=2; }
+    if(sep<0) return;
+    const find=l.slice(0,sep).trim();
+    const repl=l.slice(sep+arrowLen).trim();
+    if(find && repl) out.push([find,repl]);
+  });
+  return out;
+}
 function applyDict(text){
-  const lines=$('dict').value.split('\n');
-  lines.forEach(l=>{const p=l.split('='); if(p.length===2&&p[0].trim()) text=text.split(p[0].trim()).join(p[1].trim());});
+  parseDict().forEach(([f,r])=>{ text=text.split(f).join(r); });
   return text;
+}
+function updateDictNote(){
+  const el=$('dictNote'); if(!el) return;
+  const n=parseDict().length;
+  el.textContent = n ? ('발음교정 '+n+'개가 적용됩니다. 미리듣기와 다운로드 목소리에 모두 반영됩니다.') : '발음교정 내용이 없습니다. 한 줄에 하나씩 “찾을말=읽을말”로 적어주세요. (예: 010=공일공)';
 }
 function getSentences(){
   const raw=$('body').value.trim();
@@ -457,6 +495,8 @@ function renderStage(){
   $('endCard').style.display='none'; box.style.display='block';
   if(mode==='single'||mode==='fade'){ const first=box.querySelector('p'); if(first) first.classList.add('active'); }
   $('progressBar').style.width='0%'; $('status').textContent='';
+  const cb=$('churchBadge'); const cn=$('churchName')?$('churchName').value.trim():'';
+  if(cb){ cb.textContent=cn; cb.style.display=cn?'block':'none'; }
 }
 function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function setActive(i){
@@ -591,6 +631,7 @@ function wrapText(ctx,text,maxW){
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 ['title','body'].forEach(id=>$(id).addEventListener('input',renderStage));
 renderStage();
+updateDictNote();
 </script>
 </body>
 </html>
