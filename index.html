@@ -107,19 +107,19 @@
       <button class="btn-line" id="modeRollBtn" onclick="setMode('rolling')">롤링식 · 글자가 아래에서 위로</button>
     </div>
     <label>화면 비율</label>
-    <div class="row">
-      <button class="btn-line" onclick="setRatio('vertical')">세로형 9:16 (카톡·쇼츠용)</button>
-      <button class="btn-line" onclick="setRatio('wide')">가로형 16:9 (예배 화면용)</button>
+    <div class="row" id="ratioRow">
+      <button class="btn-gold" onclick="setRatio(this,'vertical')">세로형 9:16 (카톡·쇼츠용)</button>
+      <button class="btn-line" onclick="setRatio(this,'wide')">가로형 16:9 (예배 화면용)</button>
     </div>
     <label>영상 배경 (조용하고 단정한 색만 넣었습니다. 화려한 색이나 무늬는 없습니다)</label>
-    <div class="row">
-      <button class="btn-line" onclick="setBg('#101828')">짙은 남색</button>
-      <button class="btn-line" onclick="setBg('#000000')">검정</button>
-      <button class="btn-line" onclick="setBg('#14352a')">짙은 초록</button>
-      <button class="btn-line" onclick="setBg('#4a1f1f')">고동색</button>
-      <button class="btn-line" onclick="setBg('#2b2b2b')">짙은 회색</button>
-      <button class="btn-line" onclick="setBg('linear-gradient(180deg,#1e3a5f,#0e2242)')">남색 그라데이션</button>
-      <button class="btn-line" onclick="setBg('linear-gradient(180deg,#14352a,#0e241c)')">초록 그라데이션</button>
+    <div class="row" id="bgRow">
+      <button class="btn-gold" onclick="setBg(this,'#101828')">짙은 남색</button>
+      <button class="btn-line" onclick="setBg(this,'#000000')">검정</button>
+      <button class="btn-line" onclick="setBg(this,'#14352a')">짙은 초록</button>
+      <button class="btn-line" onclick="setBg(this,'#4a1f1f')">고동색</button>
+      <button class="btn-line" onclick="setBg(this,'#2b2b2b')">짙은 회색</button>
+      <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#1e3a5f,#0e2242)')">남색 그라데이션</button>
+      <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#14352a,#0e241c)')">초록 그라데이션</button>
     </div>
     <label for="bgfile">배경 사진 (선택, 교회 사진 등을 올리면 배경으로 깔립니다)</label>
     <input type="file" id="bgfile" accept="image/*" onchange="loadBg(this)">
@@ -168,11 +168,25 @@
       <button class="btn-navy" onclick="toggleFull()">⛶ 전체화면으로 보기</button>
     </div>
     <p class="note">재생은 크롬에서 가장 잘 됩니다. 목소리가 안 나오면 기기 음량을 확인하고, 미리듣기 버튼으로 목소리가 있는지 먼저 확인하세요.</p>
+    <label for="dlVoice">영상에 들어갈 목소리 (서버 목소리 8개 · 여성 4개, 남성 4개)</label>
+    <select id="dlVoice">
+      <option value="ko-KR-SunHiNeural" selected>여성 1 (선희)</option>
+      <option value="ko-KR-JiMinNeural">여성 2 (지민)</option>
+      <option value="ko-KR-SeoHyeonNeural">여성 3 (서현)</option>
+      <option value="ko-KR-YuJinNeural">여성 4 (유진)</option>
+      <option value="ko-KR-InJoonNeural">남성 1 (인준)</option>
+      <option value="ko-KR-HyunjunNeural">남성 2 (현준)</option>
+      <option value="ko-KR-BongJinNeural">남성 3 (봉진)</option>
+      <option value="ko-KR-HyunsuMultilingualNeural">남성 4 (현수)</option>
+    </select>
+    <div class="row">
+      <button class="btn-navy" onclick="previewDlVoice()">🔊 영상 목소리 미리듣기</button>
+    </div>
     <div class="row">
       <button class="btn-gold" onclick="downloadVideo()">⬇ 영상 다운로드 (목소리 + 화면 + 배경음악, webm)</button>
     </div>
     <p class="note" id="dlStatus">아직 만들지 않았습니다.</p>
-    <p class="note">다운로드되는 영상에는 2단계에서 고른 목소리와 같은 성별·번호의 목소리가 들어갑니다. 예를 들어 2단계에서 여성 2를 골랐으면 다운로드도 여성 2 목소리입니다. 따로 목소리를 다시 고를 필요가 없습니다. 만드는 데 문장 개수만큼 시간이 걸립니다. 다운로드 목소리는 서버에서 받아옵니다. 서버가 안 되면 오류 문구가 뜹니다. 미리보기(재생)는 기기 목소리라 바로 됩니다.</p>
+    <p class="note">다운로드되는 영상에는 위에서 고른 서버 목소리(여성 1~4, 남성 1~4)가 들어갑니다. 2단계 미리보기 목소리는 핸드폰 자체 목소리라 영상 목소리와 다를 수 있습니다. 만드는 데 문장 개수만큼 시간이 걸립니다. 다운로드 목소리는 서버에서 받아옵니다. 서버가 안 되면 오류 문구가 뜹니다. 미리보기(재생)는 기기 목소리라 바로 됩니다.</p>
     <p class="note">문의처: 앱 문의) shs목사 · ttd0732@hanmail.net</p>
   </div>
 </main>
@@ -335,6 +349,21 @@ async function proxySynthesize(text, voiceName){
   if(!buf.byteLength) throw new Error('empty audio');
   return new Uint8Array(buf);
 }
+let dlPreviewAudio=null;
+async function previewDlVoice(){
+  const sel=$('dlVoice'); const voiceName=sel?sel.value:'ko-KR-SunHiNeural';
+  const status=$('dlStatus'); if(status) status.textContent='영상 목소리를 받아오는 중입니다…';
+  try{
+    if(dlPreviewAudio){ dlPreviewAudio.pause(); dlPreviewAudio=null; }
+    const mp3=await proxySynthesize('주일 예배에 초대합니다', voiceName);
+    const blob=new Blob([mp3],{type:'audio/mpeg'});
+    const url=URL.createObjectURL(blob);
+    dlPreviewAudio=new Audio(url);
+    dlPreviewAudio.onended=()=>{ if(status) status.textContent='영상 목소리 미리듣기가 끝났습니다.'; };
+    await dlPreviewAudio.play();
+    if(status) status.textContent='영상 목소리를 재생 중입니다.';
+  }catch(e){ if(status) status.textContent='영상 목소리를 서버에서 받지 못했습니다. 잠시 뒤 다시 시도해 주세요.'; }
+}
 let dlBusy=false;
 async function downloadVideo(){
   if(dlBusy) return; dlBusy=true;
@@ -342,7 +371,7 @@ async function downloadVideo(){
   try{
     renderStage();
     if(!sentences.length){ alert('광고 내용을 먼저 적어주세요.'); dlBusy=false; return; }
-    const voiceName=dlVoiceFromStep2();
+    const dlSel=$('dlVoice'); const voiceName=dlSel?dlSel.value:dlVoiceFromStep2();
     setStatus('다운로드용 음성을 만드는 중입니다…');
     const AC=window.AudioContext||window.webkitAudioContext;
     if(!AC){ alert('이 브라우저는 영상 다운로드를 지원하지 않습니다. 크롬이나 Edge로 열어주세요.'); dlBusy=false; return; }
@@ -375,7 +404,7 @@ async function downloadVideo(){
     if(stopPadFn) stopPadFn(); if(fileAudio) fileAudio.pause();
     rec.stop(); await done;
     const blob=new Blob(chunks,{type:'video/webm'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='광고영상_'+(($('title').value.trim()||'광고').replace(/[\\/:*?"<>|]/g,''))+'.webm'; a.click();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='광고영상_'+(($('title').value.trim()||'광고').replace(/[\\/:*?"<>|]/g,''))+'.webm'; document.body.appendChild(a); a.click(); a.remove();
     setStatus('영상 다운로드를 시작했습니다. 다운로드 폴더에서 확인하세요.');
     try{ ctx.close(); }catch(e){}
   }catch(e){
@@ -476,10 +505,13 @@ function setMode(m){
   $('modeRollBtn').className = m==='rolling'?'btn-gold':'btn-line';
   renderStage();
 }
-function setRatio(r){
+function setRatio(btn,r){
   ratio=r; $('stage').classList.toggle('wide', r==='wide');
+  document.querySelectorAll('#ratioRow button').forEach(b=>{ b.className = b===btn ? 'btn-gold' : 'btn-line'; });
 }
-function setBg(c){ bgColor=c; $('stage').style.background=c; $('bgImg').style.display='none'; bgData=''; }
+function setBg(btn,c){ bgColor=c; $('stage').style.background=c; $('bgImg').style.display='none'; bgData='';
+  document.querySelectorAll('#bgRow button').forEach(b=>{ b.className = b===btn ? 'btn-gold' : 'btn-line'; });
+}
 function loadBg(input){
   const f=input.files[0]; if(!f) return;
   const r=new FileReader();
