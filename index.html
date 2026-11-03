@@ -87,7 +87,7 @@
         <li><b>화면에서 글자가 아래 줄로 넘어가는 것은 목소리와 무관합니다.</b> 길어서 두 줄이 돼도 목소리는 한 번에 읽습니다.</li>
         <li><b>숫자는 한글로 읽힙니다.</b> 15는 십오, 2026은 이천이십육으로 읽습니다 (화면 숫자는 그대로). 전화번호는 자릿수대로 읽습니다.</li>
         <li><b>기호는 읽지 않습니다.</b> 괄호·※·★ 같은 기호는 목소리에서 빼고 읽습니다 (화면에는 그대로 보입니다). 읽는 법을 바꾸고 싶은 단어는 2단계 발음교정 칸에 '원래말=읽을말'로 적으세요.</li>
-        <li><b>영상 끝에는 '감사합니다.' 화면이 자동으로 나옵니다.</b> 본문 끝에 감사 인사를 따로 적지 않으셔도 됩니다.</li>
+        <li><b>영상 끝에는 '사랑하고! 축복합니다!' 화면이 자동으로 나옵니다.</b> 본문 끝에 감사 인사를 따로 적지 않으셔도 됩니다.</li>
       </ul>
     </details>
     <div class="row"><button class="btn-line" onclick="resetAd()">↺ 리셋 (다시 듣고 다시 받기)</button></div>
@@ -362,7 +362,7 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
   }
   if(isEnd){
     ctx.fillStyle='#fff'; ctx.font='bold 72px "Malgun Gothic",sans-serif';
-    ctx.globalAlpha=fadeAlpha; ctx.fillText('감사합니다.',W/2,H/2); ctx.globalAlpha=1;
+    ctx.globalAlpha=fadeAlpha; ctx.fillText('사랑하고!',W/2,H/2-40); ctx.fillText('축복합니다!',W/2,H/2+45); ctx.globalAlpha=1;
     return;
   }
   if((mode==='single'||mode==='fade') && !isEnd){
@@ -614,7 +614,7 @@ function showEnd(){
   playing=false; stopPad();
   const bgm=$('bgmAudio'); bgm.pause();
   $('sentences').style.display='none';
-  $('endText').textContent='감사합니다.';
+  $('endText').innerHTML='사랑하고!<br>축복합니다!';
   $('endSub').textContent='';
   $('endCard').style.display='block';
   $('progressBar').style.width='100%';
