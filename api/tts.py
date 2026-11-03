@@ -27,6 +27,7 @@ ALLOWED_VOICES = {
     "ko-KR-YuJinNeural",
     "ko-KR-SoonBokNeural",
     "ko-KR-InJoonNeural",
+    "ko-KR-GookMinNeural",
     "ko-KR-HyunjunNeural",
     "ko-KR-BongJinNeural",
     "ko-KR-HyunsuMultilingualNeural",
