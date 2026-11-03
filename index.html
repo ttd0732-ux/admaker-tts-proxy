@@ -716,5 +716,45 @@ function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/
 renderStage();
 updateDictNote();
 </script>
+<div id="pastor-app-lock" style="position:fixed;inset:0;z-index:999999;background:#16283f;display:flex;align-items:center;justify-content:center;padding:16px;font-family:'Malgun Gothic',sans-serif">
+  <form id="pastor-app-lock-form" style="background:#fff;border-radius:18px;padding:24px 16px;max-width:420px;width:100%;text-align:center;color:#1e3a5f">
+    <div style="font-size:40px">🔒</div>
+    <h2 style="font-size:22px;margin:10px 0 6px">광고영상메이커</h2>
+    <p style="font-size:14px;color:#4a5a70;line-height:1.6">이 앱은 비번이 필요합니다.<br>운영자 키 또는 이 앱의 비번을 입력하세요.</p>
+    <p style="font-size:clamp(13px,4vw,15px);color:#c0392b;font-weight:900;margin-top:14px;background:#fff3cd;border:2px solid #f0b429;border-radius:12px;padding:12px 6px;white-space:nowrap;text-align:center">앱비번문의는 shs운영자에게 문의하세요</p>
+    <input id="pastor-app-lock-input" type="password" inputmode="numeric" autocomplete="off" placeholder="비번 입력" style="width:100%;padding:14px;border:2px solid #d9d2bf;border-radius:12px;font-size:18px;text-align:center;margin:16px 0 10px;box-sizing:border-box">
+    <button type="submit" style="width:100%;padding:14px;background:#1e3a5f;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer">앱 열기</button>
+    <p id="pastor-app-lock-error" style="display:none;color:#c0392b;font-size:14px;margin-top:12px">비번이 맞지 않습니다. 다시 입력해 주세요.</p>
+    <p style="font-size:12px;color:#7a8798;margin-top:14px">한 번 맞히면 이 기기에서는 다음부터 묻지 않습니다.</p>
+  </form>
+</div>
+<script>
+(function(){
+  var KEY = 'pastor-app-lock-admaker-v2';
+  try { if (localStorage.getItem(KEY) === '1') { var old = document.getElementById('pastor-app-lock'); if (old) old.remove(); return; } } catch(e) {}
+  document.body.style.overflow = 'hidden';
+  var form = document.getElementById('pastor-app-lock-form');
+  var input = document.getElementById('pastor-app-lock-input');
+  var err = document.getElementById('pastor-app-lock-error');
+  if (input) input.focus();
+  function hex(buf){ return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join(''); }
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var val = (input.value || '').trim();
+    if (!val) return;
+    if (!window.crypto || !crypto.subtle) { err.style.display = 'block'; err.textContent = '보안 연결(https)에서만 열 수 있습니다.'; return; }
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(val)).then(function(buf){
+      var h = hex(buf);
+      if (h === 'bec9840d05478fabb60a9b95965686b1b17c6261bc2d458c1138f381326391d4' || h === 'db9351a297a7362b3c913ac8de77bd9a1ccc0d61bada939db15a315f5e8113fc') {
+        try { localStorage.setItem(KEY, '1'); } catch(e) {}
+        document.body.style.overflow = '';
+        var el = document.getElementById('pastor-app-lock'); if (el) el.remove();
+      } else {
+        err.style.display = 'block'; input.value = ''; input.focus();
+      }
+    });
+  });
+})();
+</script>
 </body>
 </html>
