@@ -169,8 +169,12 @@
       <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#4A2C40,#221029)')">새벽 자줏빛</button>
       <button class="btn-line" onclick="setBg(this,'linear-gradient(180deg,#3B2F2A,#201915)')">따뜻한 숯·모카</button>
     </div>
-    <label for="bgfile">배경 사진 (선택, 교회 사진 등을 올리면 배경으로 깔립니다)</label>
+    <label>배경 사진 고르기 (목사님이 보내준 사진 20장, 누르면 배경이 됩니다)</label>
+    <div class="row" style="margin-bottom:6px"><button class="btn-gold" id="presetNoneBtn" onclick="setPresetBg('')">배경 없음 (그라데이션만)</button></div>
+    <div id="presetBgRow" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+    <label for="bgfile">배경 사진 직접 올리기 (선택, 교회 사진 등을 올리면 배경으로 깔립니다)</label>
     <input type="file" id="bgfile" accept="image/*" onchange="loadBg(this)">
+    <p class="note">직접 올린 사진이 있으면 그 사진이 먼저 나옵니다. 배경 사진을 고르지 않으면 그라데이션 배경만 나옵니다.</p>
     <label for="logofile">교회 로고 (선택, 올리면 화면 오른쪽 위에 교회 이름 대신 로고가 나옵니다)</label>
     <input type="file" id="logofile" accept="image/*" onchange="loadLogo(this)">
     <label for="logoMode">교회 로고 표시 방법 (로고를 올렸을 때만 적용됩니다)</label>
@@ -569,8 +573,13 @@ async function downloadVideo(){
     if(!sentences.length){ alert('광고 내용을 먼저 적어주세요.'); dlBusy=false; return; }
     const voiceName=$('voice').value;
     dlBgImg=null;
-    if(bgData){
-      try{ const im=new Image(); im.src=bgData; if(im.decode) await im.decode(); dlBgImg=im; }catch(e){ dlBgImg=null; }
+    const bgSrc=currentBgSrc();
+    if(bgSrc){
+      try{
+        const im=new Image();
+        if(bgSrc.indexOf('http')===0) im.crossOrigin='anonymous'; /* 구글 드라이브 사진: CORS로 불러야 캔버스가 오염되지 않는다 */
+        im.src=bgSrc; if(im.decode) await im.decode(); dlBgImg=im;
+      }catch(e){ dlBgImg=null; }
     }
     dlLogoImg=null;
     if(logoData){
@@ -942,13 +951,62 @@ function setRatio(btn,r){
   ratio=r; $('stage').classList.toggle('wide', r==='wide');
   document.querySelectorAll('#ratioRow button').forEach(b=>{ b.className = b===btn ? 'btn-gold' : 'btn-line'; });
 }
-function setBg(btn,c){ bgColor=c; $('stage').style.background=c; $('bgImg').style.display='none'; bgData='';
+/* 배경 사진 고르기: 목사님이 보내준 사진 20장 (구글 드라이브 '광고영상메이커-배경' 폴더, 링크 있는 사람은 누구나 보기).
+   직접 올린 사진(bgData)이 있으면 그게 우선, 둘 다 없으면 그라데이션만 나온다. */
+const PRESET_BGS=[
+  'https://lh3.googleusercontent.com/d/1ePdXjmOg7F-NByMtKIx3lNnQa2GwrDT6',
+  'https://lh3.googleusercontent.com/d/1KEyewX_DMdoOVIIv7pN9JcQ4X7hE46FV',
+  'https://lh3.googleusercontent.com/d/1Ud5TPuk_iko40aAF9i8UWSJJnoL8Zjtz',
+  'https://lh3.googleusercontent.com/d/1RRu25jQkaFx83ClXzJphU15BeGpdXF_Y',
+  'https://lh3.googleusercontent.com/d/1syRK1hDNLMNfj-V0oeSACUZI18WEOzJs',
+  'https://lh3.googleusercontent.com/d/1-RYBT5DMxh5P0ypackUCAcsuS-eOUO1r',
+  'https://lh3.googleusercontent.com/d/1fQWkc5OC4NHavMIy20YzTUkULrQMAGQf',
+  'https://lh3.googleusercontent.com/d/1BtGhoiUL-YIduqCwINbnRQTbSx0QveoR',
+  'https://lh3.googleusercontent.com/d/1Oj6zC4xXBqz40RqChinERiTDD9UbupSF',
+  'https://lh3.googleusercontent.com/d/1A4merXvNSnhvK3vlAPzX-iX0MEZUm8_S',
+  'https://lh3.googleusercontent.com/d/1sYcGeWyxmDG_felDCWeoKk9BpvMYLm1o',
+  'https://lh3.googleusercontent.com/d/1DNVsMiH9x_D6I8QsFnpRi1qY3lOlmglt',
+  'https://lh3.googleusercontent.com/d/1NjG4ulrnwO6wYFh7HjJZcM0BmRNDRtsa',
+  'https://lh3.googleusercontent.com/d/16mhslYeGa0Pcjfz1ecsr7OqLGbQQG5Kv',
+  'https://lh3.googleusercontent.com/d/1LknWZbhr9M6Yx8DOtXa76xSFmfIHgc5D',
+  'https://lh3.googleusercontent.com/d/1K9ZiIJZQOE9xQLgZs5MwPdhGw6LVy9IC',
+  'https://lh3.googleusercontent.com/d/17NXcQ3GG68evch2dqVzqHl1rSxnTPdG8',
+  'https://lh3.googleusercontent.com/d/1e8M1xSTVTsE-Z8FBfk80BzcdvHW3NN5H',
+  'https://lh3.googleusercontent.com/d/1p26Y-1-7cW8PRp4VL_4KoWdrQSZvT95H',
+  'https://lh3.googleusercontent.com/d/1PPZoY6cS5Ei3Ur51o4ymaakOcLiUlQX8'
+];
+let presetBg=''; /* 고른 배경 사진 주소 */
+function currentBgSrc(){ return bgData || presetBg || ''; }
+function updateBgPreview(){
+  const img=$('bgImg'); const src=currentBgSrc();
+  if(!img) return;
+  if(src){ img.src=src; img.style.display='block'; } else { img.style.display='none'; }
+  const nb=$('presetNoneBtn'); if(nb) nb.className = src==='' ? 'btn-gold' : 'btn-line';
+  document.querySelectorAll('#presetBgRow img').forEach(im=>{ im.style.outline = (im.dataset.url && im.dataset.url===presetBg && !bgData) ? '3px solid #f0b429' : 'none'; });
+}
+function buildPresetBgRow(){
+  const row=$('presetBgRow'); if(!row) return;
+  row.innerHTML='';
+  PRESET_BGS.forEach((u,i)=>{
+    const im=document.createElement('img');
+    im.src=u; im.alt='배경 사진 '+(i+1); im.dataset.url=u;
+    im.style.cssText='width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid #e3ddc9';
+    im.onclick=()=>setPresetBg(u);
+    row.appendChild(im);
+  });
+}
+function setPresetBg(url){
+  presetBg=url; bgData=''; const inp=$('bgfile'); if(inp) inp.value='';
+  updateBgPreview();
+}
+function setBg(btn,c){ bgColor=c; $('stage').style.background=c; $('bgImg').style.display='none'; bgData=''; presetBg='';
   document.querySelectorAll('#bgRow button').forEach(b=>{ b.className = b===btn ? 'btn-gold' : 'btn-line'; });
+  updateBgPreview();
 }
 function loadBg(input){
   const f=input.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=e=>{ bgData=e.target.result; const img=$('bgImg'); img.src=bgData; img.style.display='block'; };
+  r.onload=e=>{ bgData=e.target.result; updateBgPreview(); };
   r.readAsDataURL(f);
 }
 /* 교회 로고: 사진 파일을 올리면 오른쪽 위 배지에 나온다. 안 올리면 교회 이름 글씨만 나온다. */
@@ -1032,6 +1090,7 @@ $('sentences').addEventListener('click', e=>{
   if(!p || editingPreviewIdx>=0) return;
   startPreviewEdit(+p.dataset.i);
 });
+buildPresetBgRow();
 renderStage();
 updateDictNote();
 </script>
