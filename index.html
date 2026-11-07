@@ -37,7 +37,9 @@
   #churchBadge{position:absolute;top:14px;right:20px;z-index:5;background:rgba(0,0,0,.35);border:1.5px solid var(--gold);color:var(--gold);border-radius:16px;padding:4px 10px;font-size:14px;font-weight:700}
   #stageMeta{font-size:14px;text-align:center;color:#ffe9a8;margin-bottom:10px}
   #sentences{flex:1;overflow-y:auto;padding-right:2px}
-  #sentences p{margin:0 0 14px;font-size:20px;line-height:1.55;color:#cbd5e1;transition:all .3s}
+  #sentences p{margin:0 0 14px;font-size:20px;line-height:1.55;color:#cbd5e1;transition:all .3s;cursor:pointer}
+  #sentences p:hover{outline:2px dashed #f0b429;outline-offset:4px;border-radius:8px}
+  #sentences textarea.preview-edit{min-height:54px;font-size:18px;line-height:1.5;background:#0b1526;color:#fff;border:2px solid #f0b429}
   #sentences p.active{color:#fff;font-weight:800;font-size:23px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
   #sentences.rolling p{display:block}
   #sentences.single{display:flex;flex-direction:column;justify-content:center}
@@ -206,21 +208,24 @@
       <div class="inner">
         <h3 id="stageTitle">제목을 적어주세요</h3>
         <div id="stageMeta"></div>
+        <div id="editHint" style="display:none;text-align:center;font-size:13px;color:#ffe9a8;background:rgba(0,0,0,.35);border:1px dashed #f0b429;border-radius:999px;padding:4px 12px;margin:0 auto 8px;align-self:center">✏️ 문장을 누르면 그 자리에서 고칠 수 있습니다</div>
         <div id="sentences"><p>광고 내용을 적으면 여기에 문장들이 나타납니다.</p></div>
         <div id="endCard"><div class="big" id="endText"></div><p id="endSub"></p></div>
         <div id="progress"><div id="progressBar"></div></div>
         <div id="status"></div>
       </div>
     </div></div>
-    <div style="margin-top:14px;border-top:2px solid #f0b429;padding-top:12px">
-      <h3 style="margin:0 0 6px;font-size:17px;color:#1e3a5f">✏️ 자막 글씨 고치기</h3>
-      <p class="note" style="margin:0 0 6px">문장을 고치면 미리보기와 다운로드 영상 자막에 바로 바뀝니다. 엔터를 치면 그 자리에서 줄이 바뀝니다. 1단계 광고 내용을 다시 고치면 자막 고치기는 처음 상태로 돌아갑니다.</p>
-      <div id="subtitleEditor"></div>
-    </div>
     <div class="row" style="margin-top:12px">
       <button class="btn-gold" onclick="playAd()">▶ 광고 재생 (목소리 + 화면)</button>
       <button class="btn-danger" onclick="stopAd()">■ 정지</button>
+      <button class="btn-gold" id="resumeBtn" onclick="resumeAd()" style="display:none">▶ 정지한 곳부터 계속</button>
       <button class="btn-navy" onclick="toggleFull()">⛶ 전체화면으로 보기</button>
+    </div>
+    <p class="note" style="margin:6px 0 0">💡 미리보기 문장을 누르면 그 자리에서 바로 고칠 수 있습니다. 고치는 칸에서 엔터를 치면 줄이 바뀌고, 다른 곳을 누르면 고치기가 끝납니다.</p>
+    <div style="margin-top:14px;border-top:2px solid #f0b429;padding-top:12px">
+      <h3 style="margin:0 0 6px;font-size:17px;color:#1e3a5f">✏️ 자막 글씨 고치기</h3>
+      <p class="note" style="margin:0 0 6px">문장을 고치면 미리보기와 다운로드 영상 자막에 바로 바뀝니다. 엔터를 치면 그 자리에서 줄이 바뀝니다. ↑↓ 버튼으로 문장 순서를 바꿀 수 있습니다. 1단계 광고 내용을 다시 고치면 자막 고치기는 처음 상태로 돌아갑니다.</p>
+      <div id="subtitleEditor"></div>
     </div>
     <p class="note">재생은 크롬에서 가장 잘 됩니다. 목소리가 안 나오면 기기 음량을 확인하고, 미리듣기 버튼으로 목소리가 있는지 먼저 확인하세요.</p>
     <div class="row">
@@ -236,6 +241,7 @@
 <script>
 let mode='subtitle', ratio='vertical', bgColor='#101828', bgData='', playing=false, sentences=[], curIdx=-1, toneName='기본', bgmMode='bgm1', bgmVol=0.35;
 let editedSentences=null, lastBodyRaw=''; /* 자막 고치기: 고친 문장 목록. null이면 1단계 본문에서 만듦 */
+let editingPreviewIdx=-1; /* 미리보기에서 바로 고치기: 지금 고치는 문장 번호. -1이면 고치는 중이 아님 */
 let audioCtx=null, padNodes=[], padTimer=null, previewTimer=null;
 function stopPad(){ if(padTimer) clearInterval(padTimer); padTimer=null; padNodes.forEach(n=>{try{n.stop();}catch(e){}}); padNodes=[]; if(audioCtx){try{audioCtx.close();}catch(e){} audioCtx=null;} }
 function startPad(kind){
@@ -660,12 +666,15 @@ function getSentences(){
   return raw.split(/\n+/).flatMap(line=>line.split(/(?<=[.!?…])\s+/)).map(s=>s.trim()).filter(Boolean);
 }
 function renderStage(){
+  if(editingPreviewIdx>=0) finishPreviewEdit();
+  hideResumeBtn();
   $('stageTitle').textContent=$('title').value.trim()||'제목을 적어주세요';
   $('stageMeta').textContent='';
   const raw=$('body').value;
   if(raw!==lastBodyRaw){ lastBodyRaw=raw; editedSentences=null; }
   const base=getSentences();
   sentences = editedSentences ? editedSentences.slice() : base;
+  const hint=$('editHint'); if(hint) hint.style.display=sentences.length?'':'none';
   const box=$('sentences');
   box.innerHTML = sentences.length ? sentences.map((s,i)=>`<p data-i="${i}">${escapeHtml(s).replace(/\n/g,'<br>')}</p>`).join('') : '<p>광고 내용을 적으면 여기에 문장들이 나타납니다.</p>';
   $('endCard').style.display='none'; box.style.display='block';
@@ -680,7 +689,15 @@ function renderSubtitleEditor(){
   const wrap=$('subtitleEditor');
   if(!wrap) return;
   if(!sentences.length){ wrap.innerHTML='<p class="note">광고 내용을 적으면 여기에 문장별 고치기 칸이 나타납니다.</p>'; return; }
-  wrap.innerHTML=sentences.map((s,i)=>'<label style="display:block;font-size:14px;font-weight:bold;margin:12px 0 4px;color:#1e3a5f">'+(i+1)+'번 문장</label><textarea data-sub="'+i+'" rows="2" oninput="onSubtitleEdit(this)">'+escapeHtml(s)+'</textarea>').join('');
+  wrap.innerHTML=sentences.map((s,i)=>'<div style="margin:12px 0 0"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:14px;font-weight:bold;color:#1e3a5f">'+(i+1)+'번 문장</span><button type="button" onclick="moveSubtitle('+i+',-1)"'+(i===0?' disabled':'')+' style="padding:2px 10px;border-radius:8px;border:1.5px solid #1e3a5f;background:#fff;color:#1e3a5f;font-weight:bold;cursor:pointer">↑ 위로</button><button type="button" onclick="moveSubtitle('+i+',1)"'+(i===sentences.length-1?' disabled':'')+' style="padding:2px 10px;border-radius:8px;border:1.5px solid #1e3a5f;background:#fff;color:#1e3a5f;font-weight:bold;cursor:pointer">↓ 아래로</button></div><textarea data-sub="'+i+'" rows="2" oninput="onSubtitleEdit(this)">'+escapeHtml(s)+'</textarea></div>').join('');
+}
+/* 문장 순서 바꾸기: 위·아래 버튼으로 자리를 바꾼다 */
+function moveSubtitle(i,dir){
+  if(editedSentences===null) editedSentences=sentences.slice();
+  const j=i+dir;
+  if(j<0 || j>=editedSentences.length) return;
+  const t=editedSentences[i]; editedSentences[i]=editedSentences[j]; editedSentences[j]=t;
+  renderStage();
 }
 /* 고치기 칸 입력: 미리보기 문장만 바로 고친다 (칸 포커스를 유지하려고 전체를 다시 그리지 않는다) */
 function onSubtitleEdit(el){
@@ -690,6 +707,51 @@ function onSubtitleEdit(el){
   sentences[i]=el.value;
   const p=document.querySelector('#sentences p[data-i="'+i+'"]');
   if(p) p.innerHTML=escapeHtml(el.value).replace(/\n/g,'<br>');
+}
+/* 미리보기에서 바로 고치기: 문장을 누르면 그 자리에서 입력칸으로 바뀐다.
+   치는 대로 바로 저장되고, 엔터는 줄바꿈, 다른 곳을 누르면 고치기가 끝난다. Esc는 고친 것을 버린다. */
+function startPreviewEdit(i){
+  if(editingPreviewIdx>=0) finishPreviewEdit();
+  const p=document.querySelector('#sentences p[data-i="'+i+'"]');
+  if(!p) return;
+  editingPreviewIdx=i;
+  const orig=sentences[i]||'';
+  const ta=document.createElement('textarea');
+  ta.value=orig;
+  ta.rows=2;
+  ta.className='preview-edit';
+  ta.dataset.orig=orig;
+  ta.addEventListener('input', ()=>{
+    const val=ta.value;
+    if(editedSentences===null) editedSentences=sentences.slice();
+    editedSentences[i]=val;
+    sentences[i]=val;
+    const ed=document.querySelector('#subtitleEditor textarea[data-sub="'+i+'"]');
+    if(ed) ed.value=val;
+  });
+  ta.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){ e.preventDefault(); const o=ta.dataset.orig||''; if(editedSentences===null) editedSentences=sentences.slice(); editedSentences[i]=o; sentences[i]=o; editingPreviewIdx=-1; renderStage(); }
+  });
+  ta.addEventListener('blur', ()=>{ if(editingPreviewIdx===i) finishPreviewEdit(); });
+  p.replaceWith(ta);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+function finishPreviewEdit(){
+  if(editingPreviewIdx<0) return;
+  const i=editingPreviewIdx; editingPreviewIdx=-1;
+  const ta=document.querySelector('#sentences textarea.preview-edit');
+  if(!ta) return;
+  const val=ta.value;
+  if(editedSentences===null) editedSentences=sentences.slice();
+  editedSentences[i]=val;
+  sentences[i]=val;
+  const p=document.createElement('p');
+  p.dataset.i=i;
+  p.innerHTML=escapeHtml(val).replace(/\n/g,'<br>');
+  if(curIdx===i) p.classList.add('active');
+  ta.replaceWith(p);
+  renderSubtitleEditor();
 }
 function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function setActive(i){
@@ -717,13 +779,15 @@ async function playServerAudio(text){
   if(previewAudio===audio) previewAudio=null;
   URL.revokeObjectURL(url);
 }
-async function playAd(){
-  renderStage();
-  if(!sentences.length){alert('광고 내용을 먼저 적어주세요.');return;}
+function showResumeBtn(){ const b=$('resumeBtn'); if(b) b.style.display=''; }
+function hideResumeBtn(){ const b=$('resumeBtn'); if(b) b.style.display='none'; }
+/* 정지한 문장부터 이어서 재생한다. 끊긴 문장은 처음부터 다시 읽는다. */
+async function playFrom(startIdx){
   stopAd(true);
+  hideResumeBtn();
   playing=true; const myToken=++previewToken; $('status').textContent='재생 중…';
   const bgm=$('bgmAudio'); const track=bgmTrackSrc(bgmMode); if(track) bgm.src=track; if(bgmMode!=='none' && bgm.src){bgm.volume=bgmVol*0.5; playBgmSkip(bgm, !!track);}
-  for(let i=0;i<sentences.length;i++){
+  for(let i=startIdx;i<sentences.length;i++){
     if(!playing || myToken!==previewToken) break;
     setActive(i);
     try{ await playServerAudio(sentences[i]); }
@@ -731,8 +795,18 @@ async function playAd(){
   }
   if(playing && myToken===previewToken) showEnd();
 }
+async function playAd(){
+  renderStage();
+  if(!sentences.length){alert('광고 내용을 먼저 적어주세요.');return;}
+  playFrom(0);
+}
+async function resumeAd(){
+  if(curIdx<0 || curIdx>=sentences.length){ hideResumeBtn(); return; }
+  playFrom(curIdx);
+}
 function showEnd(){
-  playing=false; stopPad();
+  if(editingPreviewIdx>=0) finishPreviewEdit();
+  playing=false; stopPad(); hideResumeBtn();
   const bgm=$('bgmAudio'); bgm.pause();
   $('sentences').style.display='none';
   $('endText').innerHTML='사랑하고!<br>축복합니다!';
@@ -742,14 +816,18 @@ function showEnd(){
   $('status').textContent='광고가 끝났습니다.';
 }
 function stopAd(silent){
+  const wasPlaying=playing;
   playing=false; stopPreviewAudio(); stopPad();
   const bgm=$('bgmAudio'); bgm.pause(); bgm.currentTime=0;
-  if(!silent) $('status').textContent='정지했습니다.';
+  if(!silent){
+    $('status').textContent='정지했습니다.';
+    if(wasPlaying && curIdx>=0 && curIdx<sentences.length) showResumeBtn(); else hideResumeBtn();
+  }
 }
 function resetAd(){
   if(dlBusy){ alert('영상 다운로드 중에는 리셋할 수 없습니다. 다운로드가 끝난 뒤 눌러주세요.'); return; }
   stopAd(true);
-  curIdx=-1;
+  curIdx=-1; hideResumeBtn();
   renderStage();
   const ds=$('dlStatus'); if(ds) ds.textContent='';
   $('status').textContent='처음 상태로 되돌렸습니다. 목소리를 바꿔서 다시 들어보고 다운로드하세요.';
@@ -842,6 +920,12 @@ function wrapText(ctx,text,maxW){
 }
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 ['title','body'].forEach(id=>$(id).addEventListener('input',renderStage));
+/* 미리보기 문장 누르면 그 자리에서 바로 고치기 */
+$('sentences').addEventListener('click', e=>{
+  const p=e.target.closest('p[data-i]');
+  if(!p || editingPreviewIdx>=0) return;
+  startPreviewEdit(+p.dataset.i);
+});
 renderStage();
 updateDictNote();
 </script>
