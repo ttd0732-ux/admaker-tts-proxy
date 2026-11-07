@@ -368,16 +368,17 @@ function edgeSynthesize(text, voiceName){
   });
 }
 /* 다운로드 영상 heartbeat: 화면이 거의 정적이라 인코더가 프레임을 드물게 내보내고
-   키프레임도 처음 1개만 만들어, 재생기에서 처음 10초간 검은 화면이 나오는 문제 해결.
-   매 프레임마다 오른쪽 아래 모서리에 8×8 흰 네모를 투명도를 번갈아 그려
-   인코더가 매 프레임 새로 인코딩하게 한다. 눈에 안 보이는 수준(0.03/0.08)이다.
+   키프레임도 처음 1개만 만들어, 재생기에서 처음 5~10초간 검은 화면이 나오는 문제 해결.
+   매 프레임마다 오른쪽 아래 모서리에 32×32 중간 회색 네모를 투명도를 번갈아 그려
+   인코더가 매 프레임 새로 인코딩하게 한다. 32×32에 alpha 0.4면 픽셀 값이 크게 바뀌어
+   양자화에 묻히지 않는다. 모서리 자리라 눈에 거의 안 띈다.
    drawDlFrame은 다운로드용 캔버스에만 쓰이므로 미리보기에는 들어가지 않는다. */
 let dlFrameNo=0;
 function dlHeartbeat(ctx,W,H){
   dlFrameNo++;
-  ctx.globalAlpha=(dlFrameNo%2===0)?0.0:0.3;
+  ctx.globalAlpha=(dlFrameNo%2===0)?0.0:0.4;
   ctx.fillStyle='#808080';
-  ctx.fillRect(W-24,H-24,16,16);
+  ctx.fillRect(W-40,H-40,32,32);
   ctx.globalAlpha=1;
 }
 function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
@@ -583,6 +584,7 @@ async function downloadVideo(){
   if(dlBusy) return; dlBusy=true;
   const status=$('dlStatus'); const setStatus=t=>{ if(status) status.textContent=t; };
   let dlStage='준비';
+  let dlCanvasEl=null; /* 다운로드 캔버스를 DOM에 붙였다가 녹화 뒤 떼내기용 */
   try{
     renderStage();
     if(!sentences.length){ alert('광고 내용을 먼저 적어주세요.'); dlBusy=false; return; }
@@ -608,6 +610,12 @@ async function downloadVideo(){
     for(let i=0;i<sentences.length;i++){ setStatus('음성 만드는 중… ('+(i+1)+'/'+sentences.length+')'); const clean=stripSymbols(applyDict(sentences[i])); if(!clean){ buffers.push(ctx.createBuffer(1, Math.floor(ctx.sampleRate*0.3), ctx.sampleRate)); continue; } dlStage='음성 받기'; const mp3=await proxySynthesize(applyDict(sentences[i]), voiceName); dlStage='음성 풀기'; const ab=mp3.buffer.slice(mp3.byteOffset, mp3.byteOffset+mp3.byteLength); buffers.push(await ctx.decodeAudioData(ab)); if(i<sentences.length-1) await new Promise(r=>setTimeout(r,400)); }
     const vertical=ratio==='vertical'; const W=vertical?720:1280, H=vertical?1280:720;
     const canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H; const cctx=canvas.getContext('2d');
+    /* 다운로드 캔버스를 DOM에 붙인다: 화면에 안 붙은(offscreen) 캔버스는 브라우저가
+       실제로 안 그려서 captureStream이 15fps로 프레임을 제대로 못 가져오고,
+       인코더가 프레임을 거의 안 만들어 처음 몇 초가 안 나온다.
+       opacity 0이 아니라 화면 밖(-2000px)으로 밀어내 눈에 안 보이게 한다. */
+    canvas.style.position='fixed'; canvas.style.left='-2000px'; canvas.style.top='0';
+    document.body.appendChild(canvas); dlCanvasEl=canvas;
     /* 첫 화면을 캡처 스트림을 만들기 전에 미리 그려둔다: 스트림의 첫 프레임이 빈 화면이 되지 않게 한다 */
     try{ if(sentences.length) drawDlFrame(cctx,W,H,0); }catch(e){}
     const dest=ctx.createMediaStreamDestination();
@@ -640,6 +648,8 @@ async function downloadVideo(){
     await wait(2500);
     if(stopPadFn) stopPadFn(); if(fileAudio) fileAudio.pause();
     rec.stop(); await done;
+    /* 녹화 끝: DOM에 붙인 다운로드 캔버스 떼내기 (메모리 정리) */
+    try{ if(dlCanvasEl){ dlCanvasEl.remove(); dlCanvasEl=null; } }catch(e){}
     const outType=(rec.mimeType||mime||'video/webm');
     const ext=outType.indexOf('mp4')>=0?'.mp4':'.webm';
     let blob=new Blob(chunks,{type:outType});
@@ -655,6 +665,7 @@ async function downloadVideo(){
     setStatus('영상 다운로드를 시작했습니다 ('+ext+' 파일). 다운로드 폴더에서 확인하세요.');
     try{ ctx.close(); }catch(e){}
   }catch(e){
+    try{ if(dlCanvasEl){ dlCanvasEl.remove(); dlCanvasEl=null; } }catch(e2){}
     setStatus('영상 다운로드가 멈췄습니다 ['+dlStage+'] '+(e&&e.message?e.message:'오류')+'. 이 문구를 그대로 알려주세요.');
   }
   dlBusy=false;
