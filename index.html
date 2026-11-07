@@ -379,9 +379,7 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
   if((mode==='single'||mode==='fade') && !isEnd){
     const s=sentences[activeIdx]||'';
     ctx.font='bold 64px "Malgun Gothic",sans-serif'; ctx.fillStyle='#ffffff';
-    let line=''; const lines=[];
-    for(const ch of s){ const t=line+ch; if(ctx.measureText(t).width>W-160 && line){ lines.push(line); line=ch; } else line=t; }
-    if(line) lines.push(line);
+    const lines=wrapText(ctx,s,W-160);
     let y=H/2 - (lines.length-1)*38;
     ctx.globalAlpha=fadeAlpha;
     lines.forEach(ln=>{ ctx.fillText(ln,W/2,y); y+=76; });
@@ -391,9 +389,7 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
     const items=sentences.map((s,i)=>{
       const active=i===activeIdx;
       ctx.font= active ? 'bold 48px "Malgun Gothic",sans-serif' : '36px "Malgun Gothic",sans-serif';
-      let line=''; const lines=[];
-      for(const ch of s){ const t=line+ch; if(ctx.measureText(t).width>W-160 && line){ lines.push(line); line=ch; } else line=t; }
-      if(line) lines.push(line);
+      const lines=wrapText(ctx,s,W-160);
       const top=y; y+=lines.length*(active?62:48)+22;
       return {lines, active, top};
     });
@@ -708,7 +704,17 @@ function applyTpl(kind){
 }
 function wrapText(ctx,text,maxW){
   const words=text.split(' '); const lines=[]; let line='';
-  words.forEach(w=>{ const t=line?line+' '+w:w; if(ctx.measureText(t).width>maxW && line){lines.push(line); line=w;} else line=t; });
+  words.forEach(w=>{
+    if(w && ctx.measureText(w).width>maxW){
+      if(line){ lines.push(line); line=''; }
+      let cur='';
+      for(const ch of w){ const t=cur+ch; if(ctx.measureText(t).width>maxW && cur){ lines.push(cur); cur=ch; } else cur=t; }
+      if(cur) line=cur;
+      return;
+    }
+    const t=line?line+' '+w:w;
+    if(ctx.measureText(t).width>maxW && line){ lines.push(line); line=w; } else line=t;
+  });
   if(line) lines.push(line); return lines;
 }
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
