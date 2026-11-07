@@ -439,6 +439,85 @@ async function proxySynthesize(text, voiceName){
 }
 let dlBusy=false;
 let dlBgImg=null;
+/* MP4 faststart: moov 박스를 mdat 앞으로 옮겨 처음부터 바로 재생되게 한다.
+   MediaRecorder가 만든 MP4는 moov가 파일 끝에 있어 처음 열 때 끝까지 읽어야 한다.
+   moov를 앞으로 옮기면 그 안의 chunk offset(stco/co64)도 moov 크기만큼 뒤로 밀리므로 함께 고친다. */
+function mp4Faststart(ab){
+  try{
+    const buf=new Uint8Array(ab);
+    const view=new DataView(ab);
+    if(buf.length<8) return null;
+    function readBoxes(v,b,start,end){
+      const boxes=[]; let p=start;
+      while(p+8<=end){
+        let size=v.getUint32(p,false);
+        const type=String.fromCharCode(b[p+4],b[p+5],b[p+6],b[p+7]);
+        let header=8;
+        if(size===1){
+          if(p+16>end) return null;
+          const hi=v.getUint32(p+8,false), lo=v.getUint32(p+12,false);
+          const big=hi*4294967296+lo;
+          if(big>end-p || big<16) return null;
+          size=big; header=16;
+        }else if(size===0){
+          size=end-p;
+        }
+        if(size<8 || p+size>end) return null;
+        boxes.push({type:type, offset:p, size:size, header:header, content:p+header, end:p+size});
+        p+=size;
+      }
+      return boxes;
+    }
+    const top=readBoxes(view,buf,0,buf.length);
+    if(!top) return null;
+    let moov=null, mdat=null;
+    for(const b of top){ if(b.type==='moov' && !moov) moov=b; if(b.type==='mdat' && !mdat) mdat=b; }
+    if(!moov || !mdat) return null;
+    if(moov.offset < mdat.offset) return ab; // 이미 faststart
+    const moovBuf=new Uint8Array(ab, moov.offset, moov.size);
+    const moovView=new DataView(ab, moov.offset, moov.size);
+    const delta=moov.size;
+    function fixOffsets(start,end){
+      const boxes=readBoxes(moovView,moovBuf,start,end);
+      if(!boxes) return;
+      for(const b of boxes){
+        if(b.type==='stco' || b.type==='co64'){
+          const count=moovView.getUint32(b.content+4,false);
+          const entrySize=b.type==='stco'?4:8;
+          for(let i=0;i<count;i++){
+            const ep=b.content+8+i*entrySize;
+            if(ep+entrySize>b.end) break;
+            if(b.type==='stco'){
+              moovView.setUint32(ep, (moovView.getUint32(ep,false)+delta)>>>0, false);
+            }else{
+              let lo=moovView.getUint32(ep+4,false), hi=moovView.getUint32(ep,false);
+              let nl=lo+delta;
+              if(nl>=4294967296){ hi=(hi+1)>>>0; nl-=4294967296; }
+              moovView.setUint32(ep, hi>>>0, false);
+              moovView.setUint32(ep+4, nl>>>0, false);
+            }
+          }
+        }else if(b.type==='trak'||b.type==='mdia'||b.type==='minf'||b.type==='stbl'||b.type==='edts'||b.type==='dinf'){
+          fixOffsets(b.content, b.end);
+        }
+      }
+    }
+    fixOffsets(moov.header, moov.size);
+    const out=new Uint8Array(buf.length);
+    let wp=0;
+    for(const b of top){
+      if(b===moov) continue;
+      if(b===mdat){
+        out.set(moovBuf, wp); wp+=moov.size;
+        out.set(new Uint8Array(ab, b.offset, b.size), wp); wp+=b.size;
+      }else{
+        out.set(new Uint8Array(ab, b.offset, b.size), wp); wp+=b.size;
+      }
+    }
+    if(wp!==buf.length) return null;
+    return out.buffer;
+  }catch(e){ return null; }
+}
 async function downloadVideo(){
   if(dlBusy) return; dlBusy=true;
   const status=$('dlStatus'); const setStatus=t=>{ if(status) status.textContent=t; };
@@ -487,7 +566,15 @@ async function downloadVideo(){
     rec.stop(); await done;
     const outType=(rec.mimeType||mime||'video/webm');
     const ext=outType.indexOf('mp4')>=0?'.mp4':'.webm';
-    const blob=new Blob(chunks,{type:outType});
+    let blob=new Blob(chunks,{type:outType});
+    if(ext==='.mp4'){
+      try{
+        setStatus('영상 정리 중입니다… (처음부터 바로 재생되게 다듬는 중)');
+        const buf=await blob.arrayBuffer();
+        const fast=mp4Faststart(buf);
+        if(fast && fast!==buf) blob=new Blob([fast],{type:outType});
+      }catch(e){ /* 정리 실패 시 원래 파일 그대로 다운로드 */ }
+    }
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='광고영상_'+(($('title').value.trim()||'광고').replace(/[\\/:*?"<>|]/g,''))+ext; document.body.appendChild(a); a.click(); a.remove();
     setStatus('영상 다운로드를 시작했습니다 ('+ext+' 파일). 다운로드 폴더에서 확인하세요.');
     try{ ctx.close(); }catch(e){}
