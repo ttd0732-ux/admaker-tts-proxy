@@ -375,9 +375,9 @@ function edgeSynthesize(text, voiceName){
 let dlFrameNo=0;
 function dlHeartbeat(ctx,W,H){
   dlFrameNo++;
-  ctx.globalAlpha=(dlFrameNo%2===0)?0.03:0.08;
-  ctx.fillStyle='#ffffff';
-  ctx.fillRect(W-12,H-12,8,8);
+  ctx.globalAlpha=(dlFrameNo%2===0)?0.0:0.3;
+  ctx.fillStyle='#808080';
+  ctx.fillRect(W-24,H-24,16,16);
   ctx.globalAlpha=1;
 }
 function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
