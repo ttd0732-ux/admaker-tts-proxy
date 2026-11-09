@@ -34,7 +34,7 @@
   #stage .bgphoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45}
   #stage .inner{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
   #stageTitle{font-size:24px;font-weight:800;text-align:center;margin:24px 0 12px;text-shadow:0 2px 6px rgba(0,0,0,.6);white-space:pre-wrap}
-  #churchBadge{position:absolute;top:14px;right:20px;z-index:5;background:rgba(0,0,0,.35);border:1.5px solid var(--gold);color:var(--gold);border-radius:16px;padding:4px 10px;font-size:14px;font-weight:700}
+  #churchBadge{position:absolute;top:14px;right:20px;z-index:5;background:rgba(0,0,0,.35);border:1.5px solid var(--gold);color:var(--gold);border-radius:16px;padding:4px 10px;font-size:14px;font-weight:700;white-space:nowrap}
   #stageMeta{font-size:14px;text-align:center;color:#ffe9a8;margin-bottom:10px}
   #sentences{flex:1;overflow-y:auto;padding-right:2px}
   #sentences p{margin:0 0 14px;font-size:20px;line-height:1.55;color:#cbd5e1;transition:all .3s;cursor:pointer;white-space:pre-wrap}
@@ -397,24 +397,26 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
   ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#f0b429'; ctx.fillRect(0,0,W,8);
   ctx.textAlign='center'; ctx.fillStyle='#fff';
-  const tf=fitCaption(ctx,title,W-120,54,30,2,true);
-  ctx.font='bold '+tf.size+'px "Malgun Gothic",sans-serif';
-  tf.lines.forEach((l,j)=>ctx.fillText(l,W/2,110+j*60));
   /* 오른쪽 위 배지: 교회 로고 또는 교회 이름 (3단계에서 고른 방식대로) */
   const church=($('churchName')?$('churchName').value.trim():'');
   const showLogo = dlLogoImg && dlLogoImg.complete && dlLogoImg.naturalWidth && (logoMode==='logo'||logoMode==='both');
   const showName = church && (logoMode==='name'||logoMode==='both'||!showLogo);
+  /* 로고가 보이면 배지가 커지므로 제목을 아래로 내려서 겹치지 않게 한다 (배지 아래쪽 14+52=66, 제목 첫 줄 y=122) */
+  const titleY = showLogo ? 122 : 110;
+  const tf=fitCaption(ctx,title,W-120,54,30,2,true);
+  ctx.font='bold '+tf.size+'px "Malgun Gothic",sans-serif';
+  tf.lines.forEach((l,j)=>ctx.fillText(l,W/2,titleY+j*60));
   if(showLogo || showName){
     let nameW=0;
     if(showName){ ctx.font='bold 22px "Malgun Gothic",sans-serif'; nameW=ctx.measureText(church).width; }
     let logoW=0, logoH=0;
     if(showLogo){
-      logoH=30;
+      logoH=42;
       logoW=Math.round(logoH*dlLogoImg.naturalWidth/dlLogoImg.naturalHeight);
       if(logoW>220){ logoW=220; logoH=Math.round(220*dlLogoImg.naturalHeight/dlLogoImg.naturalWidth); }
     }
     const gap=(showLogo&&showName)?10:0;
-    const bw=10+logoW+gap+nameW+10, bh=showLogo?40:32;
+    const bw=10+logoW+gap+nameW+10, bh=showLogo?52:32;
     const bx=W-20-bw, by=14;
     ctx.fillStyle='rgba(0,0,0,0.35)';
     ctx.beginPath();
@@ -773,10 +775,12 @@ function renderStage(){
     else{
       cb.style.display='block';
       cb.innerHTML='';
-      if(showLogo){ const im=document.createElement('img'); im.src=logoData; im.alt='교회 로고'; im.style.cssText='height:26px;width:auto;vertical-align:middle;border-radius:4px'; cb.appendChild(im); }
+      if(showLogo){ const im=document.createElement('img'); im.src=logoData; im.alt='교회 로고'; im.style.cssText='height:36px;width:auto;max-width:220px;vertical-align:middle;border-radius:4px'; cb.appendChild(im); }
       if(showLogo && showName){ cb.appendChild(document.createTextNode(' ')); }
       if(showName){ cb.appendChild(document.createTextNode(cn)); }
     }
+    /* 로고가 보이면 배지가 커지므로 제목을 아래로 내려서 겹치지 않게 한다 (배지 아래쪽 약 61px, 제목 위쪽 22+48=70px) */
+    const st=$('stageTitle'); if(st) st.style.marginTop = showLogo ? '48px' : '';
   }
   renderSubtitleEditor();
   applyPreviewFit();
