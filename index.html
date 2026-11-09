@@ -33,11 +33,11 @@
   #stage.wide{max-width:640px;aspect-ratio:16/9}
   #stage .bgphoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45}
   #stage .inner{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
-  #stageTitle{font-size:24px;font-weight:800;text-align:center;margin:24px 0 12px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+  #stageTitle{font-size:24px;font-weight:800;text-align:center;margin:24px 0 12px;text-shadow:0 2px 6px rgba(0,0,0,.6);white-space:pre-wrap}
   #churchBadge{position:absolute;top:14px;right:20px;z-index:5;background:rgba(0,0,0,.35);border:1.5px solid var(--gold);color:var(--gold);border-radius:16px;padding:4px 10px;font-size:14px;font-weight:700}
   #stageMeta{font-size:14px;text-align:center;color:#ffe9a8;margin-bottom:10px}
   #sentences{flex:1;overflow-y:auto;padding-right:2px}
-  #sentences p{margin:0 0 14px;font-size:20px;line-height:1.55;color:#cbd5e1;transition:all .3s;cursor:pointer}
+  #sentences p{margin:0 0 14px;font-size:20px;line-height:1.55;color:#cbd5e1;transition:all .3s;cursor:pointer;white-space:pre-wrap}
   #sentences p:hover{outline:2px dashed #f0b429;outline-offset:4px;border-radius:8px}
   #sentences textarea.preview-edit{min-height:54px;font-size:18px;line-height:1.5;background:#0b1526;color:#fff;border:2px solid #f0b429}
   #sentences p.active{color:#fff;font-weight:800;font-size:23px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
@@ -172,6 +172,8 @@
     <label>배경 사진 고르기 (목사님이 보내준 사진 20장, 누르면 배경이 됩니다)</label>
     <div class="row" style="margin-bottom:6px"><button class="btn-gold" id="presetNoneBtn" onclick="setPresetBg('')">배경 없음 (그라데이션만)</button></div>
     <div id="presetBgRow" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+    <label>절기배경 고르기 (성탄·사순절·부활절 등 교회 절기 사진 20장, 누르면 배경이 됩니다)</label>
+    <div id="seasonBgRow" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
     <label for="bgfile">배경 사진 직접 올리기 (선택, 교회 사진 등을 올리면 배경으로 깔립니다)</label>
     <input type="file" id="bgfile" accept="image/*" onchange="loadBg(this)">
     <p class="note">직접 올린 사진이 있으면 그 사진이 먼저 나옵니다. 배경 사진을 고르지 않으면 그라데이션 배경만 나옵니다.</p>
@@ -367,19 +369,14 @@ function edgeSynthesize(text, voiceName){
     }catch(e){ reject(e); }
   });
 }
-/* 다운로드 영상 heartbeat: 화면이 거의 정적이라 인코더가 프레임을 드물게 내보내고
-   키프레임도 처음 1개만 만들어, 재생기에서 처음 5~10초간 검은 화면이 나오는 문제 해결.
-   매 프레임마다 오른쪽 아래 모서리에 32×32 중간 회색 네모를 투명도를 번갈아 그려
-   인코더가 매 프레임 새로 인코딩하게 한다. 32×32에 alpha 0.4면 픽셀 값이 크게 바뀌어
-   양자화에 묻히지 않는다. 모서리 자리라 눈에 거의 안 띈다.
+/* 가운데 정렬 글씨 그리기: 줄 앞 띄어쓰기(들여쓰기)는 오른쪽으로 밀어서 그린다.
+   fillText는 글씨를 가운데에 맞추므로 앞 띄어쓰기를 그대로 두면 글씨가 왼쪽으로 밀리기 때문이다.
    drawDlFrame은 다운로드용 캔버스에만 쓰이므로 미리보기에는 들어가지 않는다. */
-let dlFrameNo=0;
-function dlHeartbeat(ctx,W,H){
-  dlFrameNo++;
-  ctx.globalAlpha=(dlFrameNo%2===0)?0.0:0.4;
-  ctx.fillStyle='#808080';
-  ctx.fillRect(W-40,H-40,32,32);
-  ctx.globalAlpha=1;
+function drawCenteredText(ctx,line,x,y){
+  const lead=(line.match(/^ */)||[''])[0];
+  if(!lead){ ctx.fillText(line,x,y); return; }
+  const leadW=ctx.measureText(lead).width;
+  ctx.fillText(line.slice(lead.length), x+leadW, y);
 }
 function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
   if(fadeAlpha===undefined) fadeAlpha=1;
@@ -432,7 +429,6 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
   if(isEnd){
     ctx.fillStyle='#fff'; ctx.font='bold 72px "Malgun Gothic",sans-serif';
     ctx.globalAlpha=fadeAlpha; ctx.fillText('사랑하고!',W/2,H/2-40); ctx.fillText('축복합니다!',W/2,H/2+45); ctx.globalAlpha=1;
-    dlHeartbeat(ctx,W,H);
     return;
   }
   if((mode==='single'||mode==='fade') && !isEnd){
@@ -442,7 +438,7 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
     const lh=Math.round(f.size*1.19);
     let y=H/2 - (f.lines.length-1)*lh/2;
     ctx.globalAlpha=fadeAlpha;
-    f.lines.forEach(ln=>{ ctx.fillText(ln,W/2,y); y+=lh; });
+    f.lines.forEach(ln=>{ drawCenteredText(ctx,ln,W/2,y); y+=lh; });
     ctx.globalAlpha=1;
   } else if(!isEnd) {
     let y=250;
@@ -460,11 +456,10 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
       ctx.font=(it.active?'bold ':'')+it.size+'px "Malgun Gothic",sans-serif';
       ctx.fillStyle= it.active ? '#ffffff' : '#96a5b9';
       let yy=it.top-offset;
-      it.lines.forEach(ln=>{ if(yy>=210 && yy<=H-70) ctx.fillText(ln,W/2,yy); yy+=it.lh; });
+      it.lines.forEach(ln=>{ if(yy>=210 && yy<=H-70) drawCenteredText(ctx,ln,W/2,yy); yy+=it.lh; });
     });
   }
   /* 다운로드 영상에는 노란색 진행 막대를 그리지 않는다 (미리보기 진행 막대는 별도로 유지) */
-  dlHeartbeat(ctx,W,H);
 }
 function startDlPad(ctx, dest, kind){
   const master=ctx.createGain(); master.gain.value=bgmVol; master.connect(dest);
@@ -583,6 +578,8 @@ function mp4Faststart(ab){
 async function downloadVideo(){
   if(dlBusy) return; dlBusy=true;
   const status=$('dlStatus'); const setStatus=t=>{ if(status) status.textContent=t; };
+  /* 다운로드 진행 막대: 음성 0~45%, 녹화 45~95%, 끝 화면·정리 95~100% */
+  const setDlProgress=p=>{ const bar=$('progressBar'); if(bar) bar.style.width=Math.max(0,Math.min(100,Math.round(p)))+'%'; };
   let dlStage='준비';
   let dlRedrawTimer=null; /* 녹화 중 15fps 다시 그리기 타이머 */
   let dlCurIdx=0, dlIsEnd=false, dlFade=1; /* 다시 그리기가 읽는 현재 화면 상태 (문장 번호·끝 화면·페이드) */
@@ -590,6 +587,7 @@ async function downloadVideo(){
   try{
     renderStage();
     if(!sentences.length){ alert('광고 내용을 먼저 적어주세요.'); dlBusy=false; return; }
+    setDlProgress(0); /* 새로 다운로드 시작: 막대를 0%로 돌려놓는다 */
     const voiceName=$('voice').value;
     dlBgImg=null;
     const bgSrc=currentBgSrc();
@@ -609,7 +607,7 @@ async function downloadVideo(){
     if(!AC){ alert('이 브라우저는 영상 다운로드를 지원하지 않습니다. 크롬이나 Edge로 열어주세요.'); dlBusy=false; return; }
     const ctx=new AC(); if(ctx.state==='suspended' && ctx.resume) await ctx.resume();
     const buffers=[];
-    for(let i=0;i<sentences.length;i++){ setStatus('음성 만드는 중… ('+(i+1)+'/'+sentences.length+')'); const clean=stripSymbols(applyDict(sentences[i])); if(!clean){ buffers.push(ctx.createBuffer(1, Math.floor(ctx.sampleRate*0.3), ctx.sampleRate)); continue; } dlStage='음성 받기'; const mp3=await proxySynthesize(applyDict(sentences[i]), voiceName); dlStage='음성 풀기'; const ab=mp3.buffer.slice(mp3.byteOffset, mp3.byteOffset+mp3.byteLength); buffers.push(await ctx.decodeAudioData(ab)); if(i<sentences.length-1) await new Promise(r=>setTimeout(r,400)); }
+    for(let i=0;i<sentences.length;i++){ setStatus('음성 만드는 중… ('+(i+1)+'/'+sentences.length+')'); setDlProgress(((i+1)/sentences.length)*45); const clean=stripSymbols(applyDict(sentences[i])); if(!clean){ buffers.push(ctx.createBuffer(1, Math.floor(ctx.sampleRate*0.3), ctx.sampleRate)); continue; } dlStage='음성 받기'; const mp3=await proxySynthesize(applyDict(sentences[i]), voiceName); dlStage='음성 풀기'; const ab=mp3.buffer.slice(mp3.byteOffset, mp3.byteOffset+mp3.byteLength); buffers.push(await ctx.decodeAudioData(ab)); if(i<sentences.length-1) await new Promise(r=>setTimeout(r,400)); }
     const vertical=ratio==='vertical'; const W=vertical?720:1280, H=vertical?1280:720;
     const canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H; const cctx=canvas.getContext('2d');
     /* 다운로드 캔버스를 DOM에 붙인다: 화면에 안 붙은(offscreen) 캔버스는 브라우저가
@@ -645,14 +643,14 @@ async function downloadVideo(){
     dlStage='녹화'; try{ if(sentences.length) drawDlFrame(cctx,W,H,0); }catch(e){} pokeFrame(); rec.start(1000); pokeFrame();
     /* 녹화 중 15fps로 계속 다시 그리기: 문장 소리가 재생되는 몇 초 동안 캔버스를 안 그리면
        captureStream이 가져올 새 화면이 없어 인코더가 프레임을 거의 안 만들고 처음 몇 초가 안 나온다.
-       heartbeat도 이 다시 그리기 안에서 66ms마다 바뀌어 15fps로 프레임이 꾸준히 나온다. */
+       66ms마다 다시 그려서 15fps로 프레임이 꾸준히 나온다. */
     dlCurIdx=0; dlIsEnd=false; dlFade=1;
     dlRedrawTimer=setInterval(()=>{ try{ drawDlFrame(cctx,W,H,dlCurIdx,dlIsEnd,dlFade); }catch(e){} pokeFrame(); },66);
     setStatus('영상 녹화 중입니다… (끝나면 자동 저장됩니다)');
     const playBuf=buf=>new Promise(res=>{ const src=ctx.createBufferSource(); src.buffer=buf; src.connect(dest); src.connect(monitor); src.onended=res; src.start(); });
     const wait=ms=>new Promise(res=>setTimeout(res,ms));
-    for(let i=0;i<buffers.length;i++){ dlCurIdx=i; dlIsEnd=false; if(mode==='fade'){ for(const a of [0.55,0.8]){ dlFade=a; drawDlFrame(cctx,W,H,i,false,a); pokeFrame(); await wait(130); } } dlFade=1; drawDlFrame(cctx,W,H,i,false); pokeFrame(); await wait(120); drawDlFrame(cctx,W,H,i,false); pokeFrame(); setStatus('영상 녹화 중… ('+(i+1)+'/'+buffers.length+')'); await playBuf(buffers[i]); await wait(150); }
-    dlIsEnd=true; for(const a of [0.5,0.75]){ dlFade=a; drawDlFrame(cctx,W,H,-1,true,a); pokeFrame(); await wait(150); } dlFade=1; drawDlFrame(cctx,W,H,-1,true); pokeFrame();
+    for(let i=0;i<buffers.length;i++){ dlCurIdx=i; dlIsEnd=false; if(mode==='fade'){ for(const a of [0.55,0.8]){ dlFade=a; drawDlFrame(cctx,W,H,i,false,a); pokeFrame(); await wait(130); } } dlFade=1; drawDlFrame(cctx,W,H,i,false); pokeFrame(); await wait(120); drawDlFrame(cctx,W,H,i,false); pokeFrame(); setStatus('영상 녹화 중… ('+(i+1)+'/'+buffers.length+')'); setDlProgress(45+((i+1)/buffers.length)*50); await playBuf(buffers[i]); await wait(150); }
+    dlIsEnd=true; setDlProgress(95); for(const a of [0.5,0.75]){ dlFade=a; drawDlFrame(cctx,W,H,-1,true,a); pokeFrame(); await wait(150); } dlFade=1; drawDlFrame(cctx,W,H,-1,true); pokeFrame();
     await wait(2500);
     if(stopPadFn) stopPadFn(); if(fileAudio) fileAudio.pause();
     if(dlRedrawTimer){ clearInterval(dlRedrawTimer); dlRedrawTimer=null; } /* 녹화 끝: 다시 그리기 멈추기 */
@@ -671,6 +669,7 @@ async function downloadVideo(){
       }catch(e){ /* 정리 실패 시 원래 파일 그대로 다운로드 */ }
     }
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='광고영상_'+(($('title').value.trim()||'광고').replace(/[\\/:*?"<>|]/g,''))+ext; document.body.appendChild(a); a.click(); a.remove();
+    setDlProgress(100); /* 다운로드 완료: 막대를 100%로 둔다 */
     setStatus('영상 다운로드를 시작했습니다 ('+ext+' 파일). 다운로드 폴더에서 확인하세요.');
     try{ ctx.close(); }catch(e){}
   }catch(e){
@@ -745,9 +744,11 @@ function updateDictNote(){
   el.textContent = n ? ('발음교정 '+n+'개가 적용됩니다. 미리듣기와 다운로드 목소리에 모두 반영됩니다.') : '발음교정 내용이 없습니다. 한 줄에 하나씩 “찾을말=읽을말”로 적어주세요. (예: CTS=씨티에스)';
 }
 function getSentences(){
-  const raw=$('body').value.trim();
-  if(!raw) return [];
-  return raw.split(/\n+/).flatMap(line=>line.split(/(?<=[.!?…])\s+/)).map(s=>s.trim()).filter(Boolean);
+  const raw=$('body').value;
+  if(!raw.trim()) return [];
+  /* 줄 앞 띄어쓰기(들여쓰기)는 살린다. 목소리(TTS)는 기호·띄어쓰기를 정리해서 읽으므로 영향이 없다.
+     뒤 띄어쓰기는 지우고, 띄어쓰기만 있는 줄은 빈 문장으로 만들지 않는다. */
+  return raw.split(/\n+/).flatMap(line=>line.split(/(?<=[.!?…])\s+/)).map(s=>s.replace(/ +$/,'')).filter(s=>s.trim()!=='');
 }
 function renderStage(){
   if(editingPreviewIdx>=0) finishPreviewEdit();
@@ -800,7 +801,17 @@ function applyPreviewFit(){
     const active = single ? (i===0) : (i===curIdx);
     const s=sentences[i]||'';
     const f=fitCaption(fitCtx,s,W-160,single?64:(active?48:36),single?36:(active?32:28),single?4:3,active||single);
-    p.innerHTML=f.lines.map(escapeHtml).join('<br>');
+    /* 가운데 정렬(single/fade)에서는 줄 앞 띄어쓰기가 왼쪽으로 밀리므로, 들여쓰기만큼 오른쪽 여백을 준다.
+       줄바꿈(<br>)은 그대로 살리고, 줄 안의 띄어쓰기는 pre-wrap으로 보인다. */
+    p.innerHTML=f.lines.map(l=>{
+      const lead=(l.match(/^ */)||[''])[0];
+      if(single && lead){
+        fitCtx.font=(active||single?'bold ':'')+f.size+'px "Malgun Gothic",sans-serif';
+        const pad=Math.round(2*fitCtx.measureText(lead).width*scale);
+        return '<span style="display:inline-block;padding-left:'+pad+'px">'+escapeHtml(l.slice(lead.length))+'</span>';
+      }
+      return escapeHtml(l);
+    }).join('<br>');
     p.style.fontSize=Math.max(11,Math.round(f.size*scale))+'px';
     p.style.lineHeight=single?'1.6':(active?'1.3':'1.33');
   });
@@ -824,10 +835,10 @@ function moveSubtitle(i,dir){
 function onSubtitleEdit(el){
   const i=+el.dataset.sub;
   if(editedSentences===null) editedSentences=sentences.slice();
-  editedSentences[i]=el.value;
-  sentences[i]=el.value;
+  editedSentences[i]=normNL(el.value);
+  sentences[i]=normNL(el.value);
   const p=document.querySelector('#sentences p[data-i="'+i+'"]');
-  if(p) p.innerHTML=escapeHtml(el.value).replace(/\n/g,'<br>');
+  if(p) p.innerHTML=escapeHtml(normNL(el.value)).replace(/\n/g,'<br>');
 }
 /* 미리보기에서 바로 고치기: 문장을 누르면 그 자리에서 입력칸으로 바뀐다.
    치는 대로 바로 저장되고, 엔터는 줄바꿈, 다른 곳을 누르면 고치기가 끝난다. Esc는 고친 것을 버린다. */
@@ -843,7 +854,7 @@ function startPreviewEdit(i){
   ta.className='preview-edit';
   ta.dataset.orig=orig;
   ta.addEventListener('input', ()=>{
-    const val=ta.value;
+    const val=normNL(ta.value);
     if(editedSentences===null) editedSentences=sentences.slice();
     editedSentences[i]=val;
     sentences[i]=val;
@@ -863,7 +874,7 @@ function finishPreviewEdit(){
   const i=editingPreviewIdx; editingPreviewIdx=-1;
   const ta=document.querySelector('#sentences textarea.preview-edit');
   if(!ta) return;
-  const val=ta.value;
+  const val=normNL(ta.value);
   if(editedSentences===null) editedSentences=sentences.slice();
   editedSentences[i]=val;
   sentences[i]=val;
@@ -876,6 +887,8 @@ function finishPreviewEdit(){
   applyPreviewFit();
 }
 function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+/* 줄바꿈 정규화: 윈도우에서 붙여넣은 CRLF를 LF로 바꾼다 */
+function normNL(s){ return (s||'').replace(/\r\n?/g,'\n'); }
 function setActive(i){
   curIdx=i;
   document.querySelectorAll('#sentences p').forEach(p=>p.classList.toggle('active', +p.dataset.i===i));
@@ -1012,6 +1025,30 @@ const PRESET_BGS=[
   'https://lh3.googleusercontent.com/d/1PPZoY6cS5Ei3Ur51o4ymaakOcLiUlQX8'
 ];
 let presetBg=''; /* 고른 배경 사진 주소 */
+/* 절기배경: 목사님이 보내준 교회 절기 사진 20장 (구글 드라이브 '광고영상메이커-배경' 폴더 안 '교회절기 이미지20개' 폴더, 링크 있는 사람은 누구나 보기).
+   일반 배경(PRESET_BGS)과 같은 presetBg를 쓰므로 둘 중 하나만 선택된다. */
+const SEASON_BGS=[
+  {u:'https://lh3.googleusercontent.com/d/1C2ai0Eag7WYumJOZ0-AMGb6LlVtzCUFE',n:'사순절 - 보라 촛불'},
+  {u:'https://lh3.googleusercontent.com/d/1hLfcEdur9fhpaJPnshETq1_VjAgwX2lY',n:'사순절 - 보라 언덕 마을'},
+  {u:'https://lh3.googleusercontent.com/d/1CpMjTr-d6djSRL0CnlTfMlpIJ9S3p1d0',n:'성탄 - 베들레헴 밤하늘 별'},
+  {u:'https://lh3.googleusercontent.com/d/18Pk2KDi2DJZW7nn3iZGlCazqrU6zrfsZ',n:'성탄 - 구유'},
+  {u:'https://lh3.googleusercontent.com/d/1n7Pnj1O-A5AUYYnQpVJRyYYB-3ew2Bfj',n:'성탄 - 성탄 소나무 가지'},
+  {u:'https://lh3.googleusercontent.com/d/1u-dA42qusPAh_e5vRxkckpjlP1VIXDtm',n:'성탄 - 베들레헴 사막 풍경'},
+  {u:'https://lh3.googleusercontent.com/d/1stNhE-5jnhfhhiEIgEefX6yteqX0T6dr',n:'성탄 - 사막 길 위 별'},
+  {u:'https://lh3.googleusercontent.com/d/1hB-K1quT2CA1maRs7YwzNgm7UPsNPjrG',n:'사순절 - 보라 수채화 산'},
+  {u:'https://lh3.googleusercontent.com/d/153881RNW0xQwU8GzHMQbkgnYrIoA6EH0',n:'사순절 - 사막 일몰'},
+  {u:'https://lh3.googleusercontent.com/d/1P1F9oFFxEuKrb-UkYl_dRDt7568KXAkQ',n:'종려주일 - 종려나무 잎'},
+  {u:'https://lh3.googleusercontent.com/d/1-zyQrzn4dERQ00HYDO-Esh6Lis2TLyPG',n:'고난주간 - 십자가 그림자'},
+  {u:'https://lh3.googleusercontent.com/d/1ixNQavKFv1BjtH5wSKKIgMihxeVhpzh7',n:'고난주간 - 어두운 보라'},
+  {u:'https://lh3.googleusercontent.com/d/1VeUymkbOwdmBuLjXepMGtvIAbBMg2pVy',n:'부활절 - 언덕 위 십자가 일출'},
+  {u:'https://lh3.googleusercontent.com/d/17xcmrimcet8bDkoJEPqudTxsh-aJBH6A',n:'부활절 - 빈 무덤'},
+  {u:'https://lh3.googleusercontent.com/d/172lvMIxAd2mkpW2_RhrOqUKfrQ1lxEmH',n:'부활절 - 백합'},
+  {u:'https://lh3.googleusercontent.com/d/14sedZ2IEFSHivrGI-sj8DihwBp6bIolc',n:'성령강림절 - 성령 불꽃'},
+  {u:'https://lh3.googleusercontent.com/d/19vpAVLCFiW0e2M71gFDS1sjYzPnoreul',n:'추수감사절 - 밀밭'},
+  {u:'https://lh3.googleusercontent.com/d/1uacVo50p0SKQHu0KLTWXLjhN3WUs1vAJ',n:'추수감사절 - 추수감사절 열매'},
+  {u:'https://lh3.googleusercontent.com/d/1yoNQqeQlIRsYKA0Zrh3uUPT-JoitLrri',n:'말씀 - 오래된 성경책'},
+  {u:'https://lh3.googleusercontent.com/d/1hAPNMf-_deDB0ovmtw5YXPF8la2VaOgJ',n:'부활절 - 산 위 십자가 일출'}
+];
 function currentBgSrc(){ return bgData || presetBg || ''; }
 function updateBgPreview(){
   const img=$('bgImg'); const src=currentBgSrc();
@@ -1019,6 +1056,7 @@ function updateBgPreview(){
   if(src){ img.src=src; img.style.display='block'; } else { img.style.display='none'; }
   const nb=$('presetNoneBtn'); if(nb) nb.className = src==='' ? 'btn-gold' : 'btn-line';
   document.querySelectorAll('#presetBgRow img').forEach(im=>{ im.style.outline = (im.dataset.url && im.dataset.url===presetBg && !bgData) ? '3px solid #f0b429' : 'none'; });
+  document.querySelectorAll('#seasonBgRow img').forEach(im=>{ im.style.outline = (im.dataset.url && im.dataset.url===presetBg && !bgData) ? '3px solid #f0b429' : 'none'; });
 }
 function buildPresetBgRow(){
   const row=$('presetBgRow'); if(!row) return;
@@ -1028,6 +1066,17 @@ function buildPresetBgRow(){
     im.src=u; im.alt='배경 사진 '+(i+1); im.dataset.url=u;
     im.style.cssText='width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid #e3ddc9';
     im.onclick=()=>setPresetBg(u);
+    row.appendChild(im);
+  });
+}
+function buildSeasonBgRow(){
+  const row=$('seasonBgRow'); if(!row) return;
+  row.innerHTML='';
+  SEASON_BGS.forEach((s,i)=>{
+    const im=document.createElement('img');
+    im.src=s.u; im.alt='절기배경 '+(i+1)+' - '+s.n; im.title=s.n; im.dataset.url=s.u;
+    im.style.cssText='width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid #e3ddc9';
+    im.onclick=()=>setPresetBg(s.u);
     row.appendChild(im);
   });
 }
@@ -1103,20 +1152,32 @@ function fitCaption(ctx,text,maxW,startPx,minPx,maxLines,bold){
   }
   return {lines:lines, size:size};
 }
+/* 줄바꿈(단어 단위): 단어와 그 뒤의 띄어쓰기를 함께 묶어서 줄을 나눈다.
+   목사님이 친 띄어쓰기(두 칸 이상, 줄 앞 들여쓰기)를 그대로 살린다.
+   한 칸 띄어쓰기 일반 문장은 예전과 같은 줄로 나뉜다. */
 function wrapText(ctx,text,maxW){
-  const words=text.split(' '); const lines=[]; let line='';
-  words.forEach(w=>{
-    if(w && ctx.measureText(w).width>maxW){
-      if(line){ lines.push(line); line=''; }
-      let cur='';
-      for(const ch of w){ const t=cur+ch; if(ctx.measureText(t).width>maxW && cur){ lines.push(cur); cur=ch; } else cur=t; }
-      if(cur) line=cur;
-      return;
+  const lines=[];
+  const lead=(text.match(/^ */)||[''])[0]; /* 줄 앞 들여쓰기 */
+  const rest=text.slice(lead.length);
+  const toks=[]; const re=/(\S+)( *)/g; let m;
+  while((m=re.exec(rest))!==null) toks.push([m[1],m[2]]);
+  if(!toks.length){ return text==='' ? [] : [text]; }
+  let cur=lead;
+  const pushCur=()=>{ lines.push(cur.replace(/ +$/,'')); cur=lead; };
+  for(const [w,sp] of toks){
+    if(ctx.measureText(w).width>maxW){
+      if(cur!==lead){ lines.push(cur.replace(/ +$/,'')); cur=lead; }
+      let curCh='';
+      for(const ch of w){ const t=curCh+ch; if(ctx.measureText(t).width>maxW && curCh){ lines.push(curCh); curCh=ch; } else curCh=t; }
+      cur=curCh+sp;
+      continue;
     }
-    const t=line?line+' '+w:w;
-    if(ctx.measureText(t).width>maxW && line){ lines.push(line); line=w; } else line=t;
-  });
-  if(line) lines.push(line); return lines;
+    const t=cur+w;
+    if(ctx.measureText(t).width>maxW && cur!==lead){ pushCur(); cur=lead+w+sp; }
+    else cur=t+sp;
+  }
+  if(cur!==lead || lines.length===0) lines.push(cur);
+  return lines;
 }
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 ['title','body'].forEach(id=>$(id).addEventListener('input',renderStage));
@@ -1127,6 +1188,7 @@ $('sentences').addEventListener('click', e=>{
   startPreviewEdit(+p.dataset.i);
 });
 buildPresetBgRow();
+buildSeasonBgRow();
 renderStage();
 updateDictNote();
 </script>
