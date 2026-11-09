@@ -43,12 +43,12 @@
   #sentences textarea.preview-edit{min-height:54px;font-size:18px;line-height:1.5;background:#0b1526;color:#fff;border:2px solid #f0b429}
   #sentences p.active{color:#fff;font-weight:800;font-size:23px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
   #sentences.rolling p{display:block}
-  #sentences.single{display:flex;flex-direction:column;justify-content:center}
+  #sentences.single{display:flex;flex-direction:column}
   #sentences.single p{display:none}
-  #sentences.single p.active{display:block;font-size:30px;line-height:1.6;text-align:center}
-  #sentences.fade{display:flex;flex-direction:column;justify-content:center}
+  #sentences.single p.active{display:block;font-size:30px;line-height:1.6;text-align:center;margin:auto 0}
+  #sentences.fade{display:flex;flex-direction:column}
   #sentences.fade p{display:none}
-  #sentences.fade p.active{display:block;font-size:30px;line-height:1.6;text-align:center;animation:fadein .8s ease}
+  #sentences.fade p.active{display:block;font-size:30px;line-height:1.6;text-align:center;animation:fadein .8s ease;margin:auto 0}
   @keyframes fadein{from{opacity:0}to{opacity:1}}
   #endCard{display:none;text-align:center;padding-top:30px}
   #endCard .big{font-size:30px;font-weight:900;color:#ffe9a8;line-height:1.4}
@@ -396,7 +396,11 @@ function drawDlFrame(ctx, W, H, activeIdx, isEnd, fadeAlpha){
     }
   }catch(e){ ctx.fillStyle='#101828'; ctx.fillRect(0,0,W,H); }
   ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#f0b429'; ctx.fillRect(0,0,W,8);
+  /* 위쪽 진행 막대: 옅은 줄 위에 진행된 만큼만 금색으로 채운다 (미리보기 진행 막대와 같은 방식).
+     진행률은 문장 번호 기준이며, 끝 화면에서는 100%이다. */
+  const dlProg = isEnd ? 1 : (sentences.length ? (activeIdx+1)/sentences.length : 0);
+  ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.fillRect(0,0,W,8);
+  ctx.fillStyle='#f0b429'; ctx.fillRect(0,0,Math.max(2,Math.round(W*dlProg)),8);
   ctx.textAlign='center'; ctx.fillStyle='#fff';
   /* 오른쪽 위 배지: 교회 로고 또는 교회 이름 (3단계에서 고른 방식대로) */
   const church=($('churchName')?$('churchName').value.trim():'');
@@ -817,7 +821,18 @@ function applyPreviewFit(){
       }
       return escapeHtml(l);
     }).join('<br>');
-    p.style.fontSize=Math.max(11,Math.round(f.size*scale))+'px';
+    /* 한 문장씩 크게/페이드: 글씨가 길면 줄이 아래로 내려가 화면 밖으로 나가므로,
+       무대 안에 들어갈 때까지 글씨를 더 줄인다 (높이 기준 맞춤). */
+    let px=Math.max(11,Math.round(f.size*scale));
+    if(single){
+      const box=$('sentences');
+      const availH=box.clientHeight-8;
+      if(availH>0){
+        let blockH=f.lines.length*px*1.6;
+        while(blockH>availH && px>11){ px-=1; blockH=f.lines.length*px*1.6; }
+      }
+    }
+    p.style.fontSize=px+'px';
     p.style.lineHeight=single?'1.6':(active?'1.3':'1.33');
   });
 }
