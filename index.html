@@ -58,9 +58,14 @@
   .saved{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #eee;padding:8px 0;font-size:14px}
   .saved button{padding:7px 10px;font-size:13px}
   @media(max-width:600px){#stageTitle{font-size:21px}#sentences p{font-size:18px}#sentences p.active{font-size:21px}}
+.pastor-box-back{text-align:center;padding:12px 16px}
+.pastor-box-back a{display:inline-block;background:#1e3a5f;color:#f0b429;border:2px solid #c9a227;border-radius:12px;padding:12px 22px;font-size:16px;font-weight:800;text-decoration:none}
+.pastor-box-back a::before{content:"\2190 "}
+.pastor-box-back a:hover{filter:brightness(1.2)}
 </style>
 </head>
 <body>
+<div class="pastor-box-back"><a href="https://pastor-app-box.vercel.app">Pastor 앱 box로 돌아가기</a></div>
 <header>
   <h1>🎬 광고영상메이커</h1>
   <p>광고 내용만 적으면, 성우 같은 목소리로 읽어주는 광고 영상을 만듭니다</p>
@@ -254,6 +259,7 @@
     <p class="note">문의처: 앱 문의) shs목사 · ttd0732@hanmail.net</p>
   </div>
 </main>
+<div class="pastor-box-back"><a href="https://pastor-app-box.vercel.app">Pastor 앱 box로 돌아가기</a></div>
 <audio id="bgmAudio" loop></audio>
 <script>
 let mode='subtitle', ratio='vertical', bgColor='#101828', bgData='', playing=false, sentences=[], curIdx=-1, toneName='기본', bgmMode='bgm1', bgmVol=0.35;
